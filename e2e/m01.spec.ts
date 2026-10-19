@@ -25,17 +25,22 @@ test('slice and hook wording follows the playing hand, and changes when the hand
   await page.getByTestId('get-started').click();
   await page.getByTestId('hand-right').click();
   await page.getByTestId('save-continue').click();
-  await page.getByTestId('skip').click(); // comfort
+  await expect(page.getByTestId('step-comfort')).toBeVisible();
+  await page.getByTestId('skip').click();
+  await expect(page.getByTestId('step-goals')).toBeVisible();
   await expect(page.getByTestId('challenge-slice_right')).toHaveText('Slice — curves to the right');
   await expect(page.getByTestId('challenge-hook_left')).toHaveText('Hook — curves to the left');
   await expect(page.getByText(/left-hander|right-hander/)).toHaveCount(0);
   await page.getByTestId('challenge-slice_right').click();
   await page.getByTestId('save-continue').click();
+  // Navigating before the save finishes would abandon it; wait for the next step.
+  await expect(page.getByTestId('step-practice')).toBeVisible();
 
   // Change to left-handed later: explanations follow.
   await page.goto('./profile/experience');
   await page.getByTestId('hand-left').click();
   await page.getByTestId('save').click();
+  await expect(page.getByTestId('my-game')).toBeVisible();
   await page.goto('./profile/goals');
   await expect(page.getByTestId('challenge-slice_right')).toHaveText('✓ Slice — curves to the left');
   await expect(page.getByTestId('challenge-push')).toHaveText('Push — starts left of target, little curve');
@@ -44,6 +49,7 @@ test('slice and hook wording follows the playing hand, and changes when the hand
   await page.goto('./profile/experience');
   await page.getByTestId('hand-not_sure').click();
   await page.getByTestId('save').click();
+  await expect(page.getByTestId('my-game')).toBeVisible();
   await page.goto('./profile/goals');
   await expect(page.getByTestId('challenge-slice_right')).toHaveText('✓ Slice — curves right for a right-hander, left for a left-hander');
   await page.goto('./game');

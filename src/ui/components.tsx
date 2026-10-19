@@ -94,8 +94,12 @@ export function Row({ children, style, gap = space.sm, wrap }: { children: React
   return <View style={[{ flexDirection: 'row', alignItems: 'center', gap, flexWrap: wrap ? 'wrap' : 'nowrap' }, style]}>{children}</View>;
 }
 
-export function Stack({ children, gap = space.md, style }: { children: ReactNode; gap?: number; style?: StyleProp<ViewStyle> }) {
-  return <View style={[{ gap }, style]}>{children}</View>;
+export function Stack({ children, gap = space.md, style, testID }: { children: ReactNode; gap?: number; style?: StyleProp<ViewStyle>; testID?: string }) {
+  return (
+    <View style={[{ gap }, style]} testID={testID}>
+      {children}
+    </View>
+  );
 }
 
 export function Divider() {

@@ -32,9 +32,21 @@ export function localeUnitDefaults(): Omit<UnitPreferences, 'confirmed'> {
 type State =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
-  | { phase: 'ready'; repos: Repositories; ownerId: string; persistent: boolean; storageLabel: string };
+  | { phase: 'ready'; repos: Repositories; ownerId: string; persistent: boolean; storageLabel: string }
+  | { phase: 'conflict'; message: string };
 
-export function AppServicesProvider({ children, renderLoading, renderError }: { children: ReactNode; renderLoading: () => ReactNode; renderError: (message: string, retry: () => void) => ReactNode }) {
+export function AppServicesProvider({
+  children,
+  renderLoading,
+  renderError,
+  renderConflict,
+}: {
+  children: ReactNode;
+  renderLoading: () => ReactNode;
+  renderError: (message: string, retry: () => void) => ReactNode;
+  /** Shown when the stored data was changed elsewhere (browser preview, another tab). */
+  renderConflict: (message: string) => ReactNode;
+}) {
   const [state, setState] = useState<State>({ phase: 'loading' });
   const [version, setVersion] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -44,6 +56,9 @@ export function AppServicesProvider({ children, renderLoading, renderError }: { 
     (async () => {
       try {
         const opened = await openAppDatabase();
+        // A refused save means another tab/window changed the data: stop and ask for a reload
+        // rather than continuing with an out-of-date copy.
+        opened.onStorageConflict?.((message) => !cancelled && setState({ phase: 'conflict', message }));
         const timeZone = deviceTimeZone();
         const repos = createRepositories({ db: opened.driver, newId: () => Crypto.randomUUID(), now: () => new Date(), timeZone });
         const ownerId = await repos.initialise();
@@ -75,6 +90,7 @@ export function AppServicesProvider({ children, renderLoading, renderError }: { 
   }, [state, version, invalidate, defaults]);
 
   if (state.phase === 'loading') return <>{renderLoading()}</>;
+  if (state.phase === 'conflict') return <>{renderConflict(state.message)}</>;
   if (state.phase === 'error') return <>{renderError(state.message, () => { setState({ phase: 'loading' }); setAttempt((a) => a + 1); })}</>;
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppServicesProvider } from '@/services/AppServices';
@@ -13,6 +14,16 @@ export default function RootLayout() {
       <StatusBar style={t.dark ? 'light' : 'dark'} />
       <AppServicesProvider
         renderLoading={() => <Loading label="Opening your private data…" />}
+        renderConflict={() => (
+          <Screen testID="storage-conflict">
+            <AppText variant="title">Reload needed</AppText>
+            <AppText>
+              Your golf data was changed in another tab or window. To avoid overwriting those changes, this page has stopped saving. Reload to
+              continue with the latest data.
+            </AppText>
+            <Button label="Reload" onPress={() => (Platform.OS === 'web' ? window.location.reload() : undefined)} testID="reload-after-conflict" />
+          </Screen>
+        )}
         renderError={(message, retry) => (
           <Screen>
             <AppText variant="title">Something went wrong</AppText>

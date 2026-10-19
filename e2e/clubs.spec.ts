@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-import { addClubFromTile, exploreEmpty, shot } from './helpers';
+import { addClubFromTile, exploreEmpty, openClubForm, shot, waitForFormClosed } from './helpers';
 
 test('two 5-irons with different brands stay separate; one goes in the bag; survives relaunch', async ({ page }) => {
   await exploreEmpty(page);
@@ -77,6 +77,7 @@ test('a 15th club is never silently added to a competition bag; swap and presets
   // Practice selections may exceed 14, clearly labelled.
   await page.goto('./bag');
   await page.getByTestId('toggle-kind').click();
+  await expect(page.getByText('Practice selection', { exact: true })).toBeVisible();
   await page.getByLabel('Add 1-iron to bag').click();
   await expect(page.getByTestId('bag-count')).toHaveText('15 clubs · practice selection — not an on-course 14-club bag');
   await page.getByTestId('toggle-kind').click();
@@ -87,18 +88,22 @@ test('unusual clubs: “W” wedge with unknown loft, custom driving iron, wedge
   await exploreEmpty(page);
   await page.goto('./clubs/catalogue');
 
-  await page.getByTestId('tile-wedge_other_stamp').click();
+  await openClubForm(page, 'wedge_other_stamp');
   await page.getByTestId('custom-name').fill('W');
   await page.getByTestId('loft-unknown').click();
+  await expect(page.getByTestId('loft-unknown').getByRole('switch')).toBeChecked();
   await page.getByTestId('save-clubs-only').click();
+  await waitForFormClosed(page);
 
   await addClubFromTile(page, 'utility_iron_custom', { customName: 'Driving iron', brand: 'Example Maker D', addToBag: false });
 
-  await page.getByTestId('tile-wedge_by_loft').click();
+  await openClubForm(page, 'wedge_by_loft');
   await page.getByTestId('save-clubs-only').click();
   await expect(page.getByText('Enter the loft for a wedge-by-loft club, or choose a named wedge instead.')).toBeVisible();
   await page.getByLabel('Set loft to 56 degrees').click();
   await page.getByTestId('save-clubs-only').click();
+  // Navigating away mid-save would abandon it; wait until the form has closed.
+  await waitForFormClosed(page);
 
   await page.goto('./clubs');
   await expect(page.getByText('Wedge stamped “W”')).toBeVisible();

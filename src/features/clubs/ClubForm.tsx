@@ -123,7 +123,7 @@ export function ClubForm({ typeCode, club, inBag, units }: { typeCode: string; c
   };
 
   return (
-    <Stack gap={space.lg}>
+    <Stack gap={space.lg} testID={`club-form-type-${typeCode}`}>
       <Row gap={space.md}>
         <ClubArt artwork={type.artwork} badge={clubBadge({ typeCode, customName: draft.customName || null, loftDeg: Number(draft.loft) || null })} size={96} putterSubtype={draft.putterSubtype || null} />
         <View style={{ flex: 1, gap: space.xs }}>

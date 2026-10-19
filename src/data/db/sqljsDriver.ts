@@ -2,6 +2,8 @@ import type { Database, SqlJsStatic } from 'sql.js';
 
 import { Mutex, SqlDriver, SqlExecutor, SqlParams } from './driver';
 
+const PRAGMA_ONLY = /^\s*(PRAGMA\s+[^;]*;\s*)+$/i;
+
 /**
  * sql.js driver. Used by the browser preview and by Node tests. `onWrite`
  * lets the browser persist the database file after each committed change.
@@ -49,10 +51,12 @@ export function createSqlJsDriver(
   };
 
   return {
-    exec: (sql) => mutex.lock(async () => {
-      await raw.exec(sql);
-      await persist();
-    }),
+    exec: (sql) =>
+      mutex.lock(async () => {
+        await raw.exec(sql);
+        // Connection pragmas change no stored data, so they are not saved.
+        if (!PRAGMA_ONLY.test(sql)) await persist();
+      }),
     run: (sql, params) =>
       mutex.lock(async () => {
         const r = await raw.run(sql, params);
@@ -65,17 +69,19 @@ export function createSqlJsDriver(
       mutex.lock(async () => {
         db.exec('BEGIN IMMEDIATE;');
         inTransaction = true;
+        let result: Awaited<ReturnType<typeof fn>>;
         try {
-          const result = await fn(raw);
+          result = await fn(raw);
           db.exec('COMMIT;');
-          inTransaction = false;
-          await persist();
-          return result;
         } catch (e) {
-          inTransaction = false;
           db.exec('ROLLBACK;');
           throw e;
+        } finally {
+          inTransaction = false;
         }
+        // Saved only after a successful commit; a refused save surfaces to the caller.
+        await persist();
+        return result;
       }),
     close: async () => {
       db.close();

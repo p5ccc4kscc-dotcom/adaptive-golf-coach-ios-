@@ -5,9 +5,9 @@
 // sub-path, and unknown paths get 404.html (which the Pages build copies from index.html).
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, resolve } from 'node:path';
 
-const root = join(process.cwd(), process.env.DIST ?? 'dist');
+const root = resolve(process.cwd(), process.env.DIST ?? 'dist');
 const base = (process.env.BASE_PATH ?? '').replace(/\/$/, '');
 const port = Number(process.env.PORT ?? 8081);
 const types = {

@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import type { SqlJsStatic } from 'sql.js';
 
+import { StaleWriteError, loadDb, openIdbStore, saveDb } from './idbStore';
 import { createSqlJsDriver } from './sqljsDriver';
 import type { OpenedDatabase } from './openDatabase';
 
@@ -16,9 +17,6 @@ declare global {
   }
 }
 
-const IDB_NAME = 'adaptive-golf-coach';
-const IDB_STORE = 'sqlite';
-const IDB_KEY = 'main-db';
 
 /** Respects experiments.baseUrl (e.g. GitHub Pages serves the app under /<repo>/). */
 function vendorBase(): string {
@@ -37,32 +35,6 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-function openIdb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbGet(db: IDBDatabase): Promise<Uint8Array | null> {
-  return new Promise((resolve, reject) => {
-    const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(IDB_KEY);
-    req.onsuccess = () => resolve(req.result ? new Uint8Array(req.result as ArrayBuffer) : null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function idbPut(db: IDBDatabase, bytes: Uint8Array): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(bytes.slice().buffer, IDB_KEY);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
 export async function openAppDatabase(): Promise<OpenedDatabase> {
   if (!window.initSqlJs) await loadScript(`${vendorBase()}sql-wasm.js`);
   if (!window.initSqlJs) throw new Error('SQLite for the browser preview failed to load.');
@@ -70,16 +42,34 @@ export async function openAppDatabase(): Promise<OpenedDatabase> {
 
   let idb: IDBDatabase | null = null;
   let existing: Uint8Array | null = null;
+  let rev = 0;
   try {
-    idb = await openIdb();
-    existing = await idbGet(idb);
-  } catch {
+    idb = await openIdbStore(indexedDB);
+    const loaded = await loadDb(idb);
+    existing = loaded.bytes;
+    rev = loaded.rev;
+  } catch (e) {
+    // Visible in the browser console (no personal data); the UI also warns the golfer.
+    console.warn(`[storage] IndexedDB unavailable, changes will not persist: ${e instanceof Error ? e.message : String(e)}`);
     idb = null;
   }
   const store = idb;
+  const conflictListeners = new Set<(message: string) => void>();
   const driver = createSqlJsDriver(SQL, {
     data: existing,
-    onWrite: store ? (bytes) => idbPut(store, bytes) : undefined,
+    onWrite: store
+      ? async (bytes) => {
+          try {
+            rev = await saveDb(store, bytes, rev);
+          } catch (e) {
+            if (e instanceof StaleWriteError) {
+              console.warn(`[storage] ${e.message}`);
+              for (const l of conflictListeners) l(e.message);
+            }
+            throw e;
+          }
+        }
+      : undefined,
   });
   return {
     driver,
@@ -87,5 +77,9 @@ export async function openAppDatabase(): Promise<OpenedDatabase> {
     storageLabel: store
       ? 'Browser preview: stored only in this browser on this device (IndexedDB).'
       : 'Browser preview: this browser is blocking storage, so changes will be lost when the page closes.',
+    onStorageConflict: (listener) => {
+      conflictListeners.add(listener);
+      return () => conflictListeners.delete(listener);
+    },
   };
 }

@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-import { addClubFromTile, shot } from './helpers';
+import { addClubFromTile, openClubForm, shot, waitForFormClosed } from './helpers';
 
 /**
  * FICTIONAL golfer (Scenario A): left-handed beginner with a partial,
@@ -46,13 +46,14 @@ test('Scenario A: first-time left-handed golfer completes onboarding, builds a b
   await expect(page.getByTestId('step-clubs')).toBeVisible();
   await expect(page.getByTestId('clubs-step-summary')).toHaveText('No clubs added yet');
   await shot(page, '03-club-face-gallery');
-  await page.getByTestId('tile-iron_7').click();
+  await openClubForm(page, 'iron_7');
   await expect(page.getByLabel('Brand for selected 7-iron')).toBeVisible();
   await expect(page.getByTestId('brand')).toHaveValue('');
   await page.getByTestId('brand').fill('Example Maker C');
   await page.getByTestId('model').fill('Series 7');
   await shot(page, '04-add-club-brand-model');
   await page.getByTestId('save-add-bag').click();
+  await waitForFormClosed(page);
   await expect(page.getByTestId('step-clubs')).toBeVisible();
 
   await addClubFromTile(page, 'driver', { brand: 'Example Maker A', model: 'Model One', addToBag: true });

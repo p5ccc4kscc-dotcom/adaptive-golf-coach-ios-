@@ -7,7 +7,7 @@ import { addClubFromTile, shot } from './helpers';
  * mixed-brand bag. Nothing here resembles any real person's data.
  */
 test('Scenario A: first-time left-handed golfer completes onboarding, builds a bag, data survives relaunch', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByText('Welcome', { exact: true })).toBeVisible();
   await shot(page, '01-welcome');
   await page.getByTestId('get-started').click();
@@ -95,7 +95,7 @@ test('Scenario A: first-time left-handed golfer completes onboarding, builds a b
   await expect(page.getByText('Hello, Test Golfer Alpha')).toBeVisible();
   await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 5 / 14 in bag · 6 owned');
 
-  await page.goto('/clubs');
+  await page.goto('./clubs');
   await expect(page.getByTestId('owned-count')).toHaveText('6 clubs owned');
   await expect(page.getByText('Example Maker C · Series 7 · Loft not entered')).toBeVisible();
   await expect(page.getByText('Brand not entered · Loft not entered')).toBeVisible();
@@ -104,7 +104,7 @@ test('Scenario A: first-time left-handed golfer completes onboarding, builds a b
 });
 
 test('onboarding resumes at the same step after relaunch, and fully skipped onboarding stays blank', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByTestId('get-started').click();
   await page.getByTestId('skip').click();
   await expect(page.getByTestId('step-comfort')).toBeVisible();
@@ -122,12 +122,12 @@ test('onboarding resumes at the same step after relaunch, and fully skipped onbo
 });
 
 test('explore with an empty profile shows no invented data and a gentle setup card', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByTestId('explore-empty').click();
   await expect(page.getByTestId('finish-setup-card')).toBeVisible();
   await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 0 / 14 in bag · 0 owned');
-  await page.goto('/analyse');
+  await page.goto('./analyse');
   await expect(page.getByText(/Not available yet · M1/)).toBeVisible();
-  await page.goto('/game');
+  await page.goto('./game');
   await expect(page.getByTestId('my-game')).toBeVisible();
 });

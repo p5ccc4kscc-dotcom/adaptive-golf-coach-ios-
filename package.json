@@ -49,7 +49,9 @@
     "export:web": "expo export --platform web",
     "serve:web": "node scripts/serve-dist.mjs",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm test"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "export:pages": "EXPO_BASE_URL=/adaptive-golf-coach-ios- expo export --platform web && cp dist/index.html dist/404.html",
+    "test:e2e:pages": "BASE_PATH=/adaptive-golf-coach-ios- playwright test"
   },
   "private": true,
   "overrides": {

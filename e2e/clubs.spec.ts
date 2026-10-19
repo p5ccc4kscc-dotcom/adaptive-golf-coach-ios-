@@ -4,13 +4,13 @@ import { addClubFromTile, exploreEmpty, shot } from './helpers';
 
 test('two 5-irons with different brands stay separate; one goes in the bag; survives relaunch', async ({ page }) => {
   await exploreEmpty(page);
-  await page.goto('/clubs/catalogue');
+  await page.goto('./clubs/catalogue');
   await addClubFromTile(page, 'iron_5', { brand: 'Example Maker A', addToBag: false });
   await expect(page.getByTestId('club-catalogue')).toBeVisible();
   await expect(page.getByTestId('tile-iron_5').getByText('Owned × 1')).toBeVisible();
   await addClubFromTile(page, 'iron_5', { brand: 'Example Maker B', addToBag: true });
 
-  await page.goto('/bag');
+  await page.goto('./bag');
   await expect(page.getByTestId('bag-count')).toHaveText('1 / 14 in bag');
   await expect(page.getByLabel('Remove 5-iron (Example Maker B) from bag')).toBeVisible();
   await expect(page.getByLabel('Add 5-iron (Example Maker A) to bag')).toBeVisible();
@@ -25,12 +25,12 @@ test('a 15th club is never silently added to a competition bag; swap and presets
   await exploreEmpty(page);
 
   // 9 irons via the set helper (each a separate club), added to the bag.
-  await page.goto('/clubs/iron-set');
+  await page.goto('./clubs/iron-set');
   for (let n = 1; n <= 9; n++) await page.getByTestId(`iron-number-${n}`).click();
   await page.getByLabel('Also add them to My Bag').click();
   await page.getByTestId('create-iron-set').click();
   await expect(page.getByTestId('owned-count')).toHaveText('9 clubs owned');
-  await page.goto('/clubs/catalogue');
+  await page.goto('./clubs/catalogue');
   for (const code of ['wood_2', 'wood_3', 'wood_4', 'wood_5', 'wood_6']) {
     await addClubFromTile(page, code, { addToBag: true });
     await expect(page.getByTestId('club-catalogue')).toBeVisible();
@@ -42,7 +42,7 @@ test('a 15th club is never silently added to a competition bag; swap and presets
   await shot(page, '08-bag-full');
   await page.getByTestId('dialog-keep-out').click();
 
-  await page.goto('/bag');
+  await page.goto('./bag');
   await expect(page.getByTestId('bag-count')).toHaveText('14 / 14 in bag');
   await shot(page, '09-build-my-bag');
 
@@ -71,11 +71,11 @@ test('a 15th club is never silently added to a competition bag; swap and presets
   await expect(page.getByTestId('bag-count')).toHaveText('1 / 14 in bag');
   await page.getByRole('radio', { name: 'My Bag' }).click();
   await expect(page.getByTestId('bag-count')).toHaveText('14 / 14 in bag');
-  await page.goto('/clubs');
+  await page.goto('./clubs');
   await expect(page.getByTestId('owned-count')).toHaveText('15 clubs owned');
 
   // Practice selections may exceed 14, clearly labelled.
-  await page.goto('/bag');
+  await page.goto('./bag');
   await page.getByTestId('toggle-kind').click();
   await page.getByLabel('Add 1-iron to bag').click();
   await expect(page.getByTestId('bag-count')).toHaveText('15 clubs · practice selection — not an on-course 14-club bag');
@@ -85,7 +85,7 @@ test('a 15th club is never silently added to a competition bag; swap and presets
 
 test('unusual clubs: “W” wedge with unknown loft, custom driving iron, wedge by loft; archive keeps history', async ({ page }) => {
   await exploreEmpty(page);
-  await page.goto('/clubs/catalogue');
+  await page.goto('./clubs/catalogue');
 
   await page.getByTestId('tile-wedge_other_stamp').click();
   await page.getByTestId('custom-name').fill('W');
@@ -100,7 +100,7 @@ test('unusual clubs: “W” wedge with unknown loft, custom driving iron, wedge
   await page.getByLabel('Set loft to 56 degrees').click();
   await page.getByTestId('save-clubs-only').click();
 
-  await page.goto('/clubs');
+  await page.goto('./clubs');
   await expect(page.getByText('Wedge stamped “W”')).toBeVisible();
   await expect(page.getByText('Brand not entered · Loft not known')).toBeVisible();
   await expect(page.getByText('Driving iron', { exact: true })).toBeVisible();
@@ -126,19 +126,19 @@ test('unusual clubs: “W” wedge with unknown loft, custom driving iron, wedge
 
 test('Delete all my data returns the app to a blank first launch', async ({ page }) => {
   await exploreEmpty(page);
-  await page.goto('/clubs/catalogue');
+  await page.goto('./clubs/catalogue');
   await addClubFromTile(page, 'putter', { brand: 'Example Maker E', addToBag: true });
-  await page.goto('/settings');
+  await page.goto('./settings');
   await page.getByTestId('delete-all').click();
   await page.getByTestId('dialog-delete-all').click();
   await expect(page.getByTestId('step-welcome')).toBeVisible();
-  await page.goto('/clubs');
+  await page.goto('./clubs');
   await expect(page.getByText('No clubs added')).toBeVisible();
 });
 
 test('mixed-brand partial iron set (5, 7, 8, 9 — no 6) and a fully custom club', async ({ page }) => {
   await exploreEmpty(page);
-  await page.goto('/clubs/iron-set');
+  await page.goto('./clubs/iron-set');
   for (const n of [5, 7, 8, 9]) await page.getByTestId(`iron-number-${n}`).click();
   await page.getByTestId('set-brand').fill('Example Maker A');
   await page.getByTestId('create-iron-set').click();
@@ -151,14 +151,14 @@ test('mixed-brand partial iron set (5, 7, 8, 9 — no 6) and a fully custom club
   await page.getByTestId('brand').fill('Example Maker B');
   await page.getByTestId('save-changes').click();
   await expect(page.getByTestId('form-status')).toHaveText('Saved.');
-  await page.goto('/clubs');
+  await page.goto('./clubs');
   await expect(page.getByRole('button', { name: /^7-iron\. Example Maker B/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^8-iron\. Example Maker A/ })).toBeVisible();
 
   // Fully custom club.
-  await page.goto('/clubs/catalogue');
+  await page.goto('./clubs/catalogue');
   await addClubFromTile(page, 'custom', { customName: 'Training club', brand: 'Example Maker F', addToBag: true });
-  await page.goto('/bag');
+  await page.goto('./bag');
   await expect(page.getByTestId('bag-count')).toHaveText('1 / 14 in bag');
   await expect(page.getByLabel('Remove Training club (Example Maker F) from bag')).toBeVisible();
 

@@ -8,7 +8,7 @@ export async function shot(page: Page, name: string) {
 }
 
 export async function exploreEmpty(page: Page) {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByTestId('explore-empty').click();
   await expect(page.getByTestId('today')).toBeVisible();
 }

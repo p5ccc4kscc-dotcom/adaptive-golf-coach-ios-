@@ -7,7 +7,7 @@ _Last updated: 2026-10-19 (M0 delivery)._ Legend: **DONE** · **PARTIAL** · **N
 | Milestone | Status | Notes / blocker and owner action |
 |---|---|---|
 | **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **DONE** (all acceptance criteria below verified in the browser build) / **PARTIAL** for native iOS | Native iOS binary not yet built. Needs an Expo account (free) for EAS Build, and Apple Developer membership to install on a phone. The iOS JavaScript bundle *does* build (`expo export --platform ios`). |
-| Browser preview deployment | **BLOCKED EXTERNALLY** | Owner: create a free Expo account and add the `EXPO_TOKEN` repo secret (see `docs/BUILD_AND_RUN.md`). Workflow written but never run. |
+| Browser preview deployment (GitHub Pages) | **BLOCKED EXTERNALLY** | Owner: Settings → Pages → Source “GitHub Actions”, then merge `claude/m0-foundation` into `main`. The workflow is written; the sub-path build passes E2E locally; it has not deployed yet. |
 | **M1** Offline video analyser (Apple Vision native module) | **NOT STARTED** | Not started, by instruction, until M0 is accepted. Needs: Apple Developer Program (to run on the iPhone), owner-supplied swing clips for validation. |
 | **M2** Curriculum, competency & refresher engine | NOT STARTED | Learn tab shows “Not available yet”. |
 | **M3** Rounds, practice logging, trends, import | NOT STARTED | M0 stores self-reported baseline round totals only. JSON export done; import not started. |
@@ -41,7 +41,7 @@ Environment: Linux sandbox, Node 22.22, no Xcode, no iOS simulator. expo.dev / e
 | Jest (unit + real-SQLite data + native component) | `npx jest --ci` | ✅ **9 suites, 82 tests passed** |
 | Web export | `expo export --platform web` | ✅ built `dist/` (1.3 MB JS bundle) |
 | iOS JS bundle | `expo export --platform ios` | ✅ Hermes bundle built (3 MB). **No native binary compiled.** |
-| Browser E2E | `npx playwright test` (Chromium, iPhone 13 viewport) | ✅ **8 tests passed** |
+| Browser E2E | `npx playwright test` (Chromium, iPhone 13 viewport) | ✅ **8 tests passed** at the root path **and** 8/8 under the GitHub Pages sub-path `/adaptive-golf-coach-ios-/` |
 | expo-doctor | `npx expo-doctor` | 19/21 passed. 2 failed only because exp.host and React Native Directory are unreachable from the sandbox. A real duplicate `expo-font` issue was found and fixed with an npm override. |
 
 **Not run:**
@@ -60,7 +60,7 @@ Environment: Linux sandbox, Node 22.22, no Xcode, no iOS simulator. expo.dev / e
   captured as profile facts for now.
 - The app icon and splash are still the Expo template images. The bundle ID
   `com.example.adaptivegolfcoach` is a placeholder.
-- The browser preview stores data per browser; two tabs can conflict. Data can be lost if Safari
+- The browser preview stores data per browser; two tabs can conflict. The preview URL is public; entered data stays in the browser. Data can be lost if Safari
   website data is cleared.
 - Tab-bar icons are text glyphs, not a designed icon set.
 - The spec copy in `docs/spec/MASTER_SPEC_V2.md` is **unverified** (transcribed from chat). The
@@ -68,9 +68,9 @@ Environment: Linux sandbox, Node 22.22, no Xcode, no iOS simulator. expo.dev / e
 
 ## Next three executable steps
 
-1. **Owner:** create a free Expo account, add the `EXPO_TOKEN` secret, merge the M0 branch to
-   `main`. I then verify the EAS Hosting deployment from the Actions logs and fix any first-run
-   problems.
+1. **Owner:** enable GitHub Pages (Source: GitHub Actions) and merge the M0 branch to `main`.
+   I then verify the Pages deployment from the Actions logs and the live URL, and fix any
+   first-run problems.
 2. **M1a:** scaffold the local Expo native module `modules/golf-vision` (Swift: AVFoundation
    probe + Vision 2D pose with real timestamps, progress and cancel) behind the TypeScript
    `PoseEstimator` interface. Write the TypeScript orientation/missingness/smoothing tests

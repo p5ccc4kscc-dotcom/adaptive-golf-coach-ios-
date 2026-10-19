@@ -1,10 +1,14 @@
-// Minimal static server for the exported web build (single-page app fallback).
-// Used by the Playwright end-to-end tests and for local inspection.
+// Minimal static server for the exported web build. Used by the Playwright
+// end-to-end tests and for local inspection.
+//   DIST=dist BASE_PATH=/adaptive-golf-coach-ios- PORT=8081 node scripts/serve-dist.mjs
+// With BASE_PATH set it behaves like GitHub Pages: files are served under the
+// sub-path, and unknown paths get 404.html (which the Pages build copies from index.html).
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, normalize } from 'node:path';
 
-const root = join(process.cwd(), 'dist');
+const root = join(process.cwd(), process.env.DIST ?? 'dist');
+const base = (process.env.BASE_PATH ?? '').replace(/\/$/, '');
 const port = Number(process.env.PORT ?? 8081);
 const types = {
   '.html': 'text/html; charset=utf-8',
@@ -19,15 +23,34 @@ const types = {
 };
 
 createServer((req, res) => {
-  const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
+  let urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
+  if (base) {
+    if (urlPath === '/') {
+      res.writeHead(302, { Location: `${base}/` }).end();
+      return;
+    }
+    if (!urlPath.startsWith(base)) {
+      res.writeHead(404).end('Not found');
+      return;
+    }
+    urlPath = urlPath.slice(base.length) || '/';
+  }
   let file = normalize(join(root, urlPath));
   if (!file.startsWith(root)) {
     res.writeHead(403).end();
     return;
   }
-  if (!existsSync(file) || statSync(file).isDirectory()) {
-    file = join(root, 'index.html');
+  let status = 200;
+  if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html');
+  if (!existsSync(file)) {
+    const notFound = join(root, '404.html');
+    if (base && existsSync(notFound)) {
+      file = notFound;
+      status = 404;
+    } else {
+      file = join(root, 'index.html');
+    }
   }
-  res.writeHead(200, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream' });
+  res.writeHead(status, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream' });
   res.end(readFileSync(file));
-}).listen(port, () => console.log(`Serving dist/ on http://localhost:${port}`));
+}).listen(port, () => console.log(`Serving ${root} at http://localhost:${port}${base}/`));

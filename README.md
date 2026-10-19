@@ -37,9 +37,10 @@ distances, scores or swing faults.
 
 See [`docs/BUILD_AND_RUN.md`](docs/BUILD_AND_RUN.md). In short:
 
-1. **Browser preview (free, no Apple membership):** once an `EXPO_TOKEN` secret is added to this
-   repo, GitHub Actions publishes the app to an `expo.app` web address. You open that address
-   in Safari. *That deployment has not been verified yet* (see the doc).
+1. **Browser preview (free, no Apple membership):** GitHub Pages at
+   `https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/`, once Pages is switched on
+   (Settings → Pages → Source: GitHub Actions) and the M0 branch is merged to `main`. *Not yet
+   verified live* (see the doc).
 2. **Real iPhone app:** this needs the Apple Developer Program (US$99/year). It is first
    required in M1, for the on-device swing analyser.
 
@@ -54,6 +55,7 @@ npm run lint           # ESLint (expo lint)
 npm test               # Jest: domain + real-SQLite data tests + native component tests
 npm run export:web     # build the browser preview into dist/
 npm run test:e2e       # Playwright end-to-end tests against dist/ (Chromium, iPhone-sized)
+npm run export:pages && npm run test:e2e:pages   # same, for the GitHub Pages sub-path build
 npx expo start         # dev server (needs a computer; not required for the owner)
 ```
 

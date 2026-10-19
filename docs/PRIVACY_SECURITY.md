@@ -13,7 +13,7 @@
   owner-scoped row.
 - Body measurements and comfort/accessibility notes are optional, marked sensitive, and never
   used to calculate club specifications or medical judgements.
-- No secrets are in the repository. `EXPO_TOKEN` lives only in GitHub Actions secrets.
+- No secrets are in the repository. The repository is **public**: never commit personal golf data, real swing videos, credentials or tokens. Fixtures are fictional. Any `EXPO_TOKEN` lives only in GitHub Actions secrets.
 
 ## Before any public release (not done)
 

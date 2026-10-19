@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import type { SqlJsStatic } from 'sql.js';
 
 import { createSqlJsDriver } from './sqljsDriver';
@@ -19,8 +20,10 @@ const IDB_NAME = 'adaptive-golf-coach';
 const IDB_STORE = 'sqlite';
 const IDB_KEY = 'main-db';
 
+/** Respects experiments.baseUrl (e.g. GitHub Pages serves the app under /<repo>/). */
 function vendorBase(): string {
-  return `${window.location.origin}/vendor/sqljs/`;
+  const baseUrl = (Constants.expoConfig?.experiments?.baseUrl ?? '').replace(/\/$/, '');
+  return `${window.location.origin}${baseUrl}/vendor/sqljs/`;
 }
 
 function loadScript(src: string): Promise<void> {

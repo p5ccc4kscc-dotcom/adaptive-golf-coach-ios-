@@ -2,7 +2,7 @@
 
 This is an Expo / React Native / TypeScript app for iPhone, built in the cloud with EAS. The
 owner has no Mac. Read `docs/spec/README.md` first. The functional spec is
-`docs/spec/MASTER_SPEC_V2.md`, and the architecture overrides are in
+`docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md` (authoritative original), and the architecture overrides are in
 `docs/spec/PROJECT_INSTRUCTIONS.md`.
 
 ## Non-negotiables

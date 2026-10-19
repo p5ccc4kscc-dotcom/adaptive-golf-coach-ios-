@@ -45,8 +45,18 @@ Rules flow downward only. Domain code has no dependencies on React or storage.
 7. **Units:** values are stored canonically (metres, cm, degrees) along with the entered unit.
    Defaults come from the phone's measurement system and are always shown and editable.
 8. **Browser preview** uses the same screens and the same SQL. `openDatabase.web.ts` loads
-   sql.js from `/vendor/sqljs` (copied at install) and persists the DB file to IndexedDB after
-   each committed write.
+   sql.js from `<baseUrl>/vendor/sqljs` (copied at install). It persists the DB file to IndexedDB
+   after each committed write, through a **revision guard** (`idbStore.ts`).
+   - Each page instance holds its own in-memory copy and saves the whole file.
+   - A save based on an out-of-date revision is refused, and the page shows "Reload needed"
+     instead of silently overwriting newer data from another tab, a page restored by the back
+     button, or a page still saving while a new one loads.
+   - Pragma-only statements are not saved, so simply opening the app never makes another tab stale.
+9. **Sync status:** `SyncProvider` (`src/domain/sync.ts`) has explicit states (`local_only`,
+   `icloud_not_configured`, `syncing`, `synced`, `sync_failed`, `conflict`). The only provider in
+   this release is local, and nothing is ever described as backed up without remote confirmation.
+10. **Club picking by ClubInstanceID** (`ClubPicker`) defaults to the active bag, with explicit
+   "Choose another owned club" and "Unknown / not entered" options.
 
 ## Planned M1 swing pipeline (not yet built)
 

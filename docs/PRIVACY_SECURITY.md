@@ -12,7 +12,12 @@
 - **Golfer controls:** export all data as JSON, and *Delete all my data*, which removes every
   owner-scoped row.
 - Body measurements and comfort/accessibility notes are optional, marked sensitive, and never
-  used to calculate club specifications or medical judgements.
+  used to calculate club specifications or medical judgements. Height and wrist-to-floor have an
+  explicit “I don't know”. No age question is asked: the spec allows one only for a demonstrated
+  coaching purpose, and none exists yet.
+- **iOS file protection:** the app requests the `NSFileProtectionComplete` default data-protection
+  entitlement, so its files are encrypted while the device is locked. This is set in `app.json` and
+  is **not yet verified** in an EAS build.
 - No secrets are in the repository. The repository is **public**: never commit personal golf data, real swing videos, credentials or tokens. Fixtures are fictional. Any `EXPO_TOKEN` lives only in GitHub Actions secrets.
 
 ## Before any public release (not done)

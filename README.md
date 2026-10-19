@@ -23,13 +23,19 @@ distances, scores or swing faults.
   length, lie, shaft, grip, condition, purchase year, notes and handedness override.
 - Per-club distance records: estimated or measured, carry or total, with source, context,
   date and number of shots.
-- **My Clubs** (owned) is kept separate from **My Bag** (active):
+- Optional baseline:
+  - past rounds, with putts as a total or hole by hole (blank holes stay “not recorded”, never 0);
+  - recent range sessions, choosing the club from your bag, another owned club, or “Unknown”;
+  - dated coach notes.
+- **My Clubs** (owned, as a list or a grouped visual grid) is kept separate from **My Bag** (active):
   - a competition bag holds at most 14 clubs, and a 15th is refused with a swap offer;
   - practice selections can be larger and are labelled as such;
   - named bag presets, swap and clear;
   - clubs that have history are archived on delete rather than erased.
 - Local private storage: SQLite on iPhone; in the browser preview, SQLite (WebAssembly) saved
-  in that browser. JSON export and **Delete all my data** are included.
+  in that browser. A second, out-of-date tab can never overwrite newer data; it asks for a reload.
+  JSON export and **Delete all my data** are included, and the sync status says plainly that
+  nothing is backed up yet.
 - Analyse, Learn and Rounds show clearly labelled **“Not available yet”** cards. No sample or
   fake analysis is shown anywhere.
 

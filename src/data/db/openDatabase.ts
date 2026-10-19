@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { SqlDriver } from './driver';
 import { createExpoSqliteDriver } from './expoSqliteDriver';
+import { STORAGE_IDS } from './storageIds';
 
 export interface OpenedDatabase {
   driver: SqlDriver;
@@ -17,6 +18,6 @@ export interface OpenedDatabase {
 
 /** Native (iPhone/iPad): a private SQLite file inside the app's sandbox. */
 export async function openAppDatabase(): Promise<OpenedDatabase> {
-  const db = await SQLite.openDatabaseAsync('adaptive-golf-coach.db');
+  const db = await SQLite.openDatabaseAsync(STORAGE_IDS.sqliteFileName);
   return { driver: createExpoSqliteDriver(db), persistent: true, storageLabel: 'Stored privately on this device (SQLite).' };
 }

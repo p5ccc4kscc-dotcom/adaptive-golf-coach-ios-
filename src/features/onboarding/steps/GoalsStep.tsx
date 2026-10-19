@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { CHALLENGES, Challenge, LABELS, PlayerGoal, PlayerProfile, ballFlightDirectionHint, validateGoalText } from '@/domain/profile';
+import { CHALLENGES, Challenge, PlayerGoal, PlayerProfile, challengeLabel, validateGoalText } from '@/domain/profile';
 import { useQuery, useServices } from '@/services/AppServices';
 import { AppText, Button, Card, MultiChips, Row, Stack, TextField } from '@/ui/components';
 import { space } from '@/ui/theme';
@@ -20,8 +20,8 @@ export function GoalsStep({ profile, ...props }: StepProps & { profile: PlayerPr
 
   const handNote =
     hand === 'right' || hand === 'left'
-      ? `Directions below are shown for a ${hand}-handed golfer, as you told us.`
-      : 'You haven’t told us which hand you play, so directions are shown for both.';
+      ? `Directions are worded for a ${hand}-handed golfer, as you told us.`
+      : 'You haven’t told us which hand you play, so directions are explained for both.';
 
   const save = async () => {
     await repos.profile.setFacts(ownerId, { challenges: { value: challenges }, challengesOther: { value: other } });
@@ -45,7 +45,7 @@ export function GoalsStep({ profile, ...props }: StepProps & { profile: PlayerPr
       </AppText>
       <MultiChips
         label="Known challenges"
-        options={CHALLENGES.map((c) => ({ value: c, label: LABELS.challenges[c], hint: ballFlightDirectionHint(hand, c) }))}
+        options={CHALLENGES.map((c) => ({ value: c, label: challengeLabel(c, hand) }))}
         value={challenges}
         onChange={setChallenges}
         testIDPrefix="challenge"

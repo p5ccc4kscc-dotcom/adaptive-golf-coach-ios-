@@ -32,8 +32,10 @@ jobs:
         run: npx expo export --platform web
         env:
           EXPO_BASE_URL: /${{ github.event.repository.name }}
-      - name: SPA fallback for deep links
-        run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - name: Fill the base URL and add the SPA fallback for deep links
+        run: node scripts/finalize-web.mjs --spa-fallback && touch dist/.nojekyll
+        env:
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

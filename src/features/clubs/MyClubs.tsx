@@ -57,7 +57,7 @@ export function MyClubs() {
   );
 
   return (
-    <Stack gap={space.lg}>
+    <Stack gap={space.md}>
       <Card>
         <Stack gap={space.xs}>
           <AppText variant="subheading" testID="owned-count">
@@ -65,6 +65,9 @@ export function MyClubs() {
           </AppText>
           <AppText muted>
             Current bag “{bag.name}”: {bagCountLabel(bag.kind, memberIds.size)}
+          </AppText>
+          <AppText variant="caption" muted>
+            Everything you own is listed here. Tick a club to put it in “{bag.name}”; highlighted clubs are in it.
           </AppText>
         </Stack>
       </Card>

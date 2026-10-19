@@ -2,10 +2,10 @@ import { View } from 'react-native';
 
 import { UnitPreferences } from '@/data/repositories/profileRepository';
 import { OnboardingStep } from '@/domain/onboarding';
-import { LABELS, PlayerProfile, ProfileFieldKey } from '@/domain/profile';
+import { LABELS, PlayerProfile, challengeLabel, ProfileFieldKey } from '@/domain/profile';
 import { Fact, PROVENANCE_LABELS } from '@/domain/provenance';
 import { formatHeight, formatLength } from '@/domain/units';
-import { AppText, Badge, Button, Card, Row, Stack } from '@/ui/components';
+import { AppText, Button, Card, Row, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
 type Formatter = (p: PlayerProfile, u: UnitPreferences) => string | null;
@@ -56,7 +56,7 @@ export const PROFILE_SECTIONS: { step: OnboardingStep; title: string; fields: { 
     step: 'goals',
     title: 'Tendencies',
     fields: [
-      { key: 'challenges', label: 'Challenges', format: (p) => list(p.challenges.value, LABELS.challenges) },
+      { key: 'challenges', label: 'Challenges', format: (p) => (p.challenges.value?.length ? p.challenges.value.map((c) => challengeLabel(c, p.playingHand.value)).join('; ') : null) },
       { key: 'challengesOther', label: 'Other', format: (p) => p.challengesOther.value },
     ],
   },
@@ -78,38 +78,52 @@ export const PROFILE_SECTIONS: { step: OnboardingStep; title: string; fields: { 
   },
 ];
 
-function statusText(f: Fact<unknown>): string {
-  return f.status === 'not_assessed' ? 'Not answered yet' : PROVENANCE_LABELS[f.status];
+function isBlank(f: Fact<unknown>): boolean {
+  return f.value === null || (Array.isArray(f.value) && f.value.length === 0);
 }
 
+function blankStatus(f: Fact<unknown>): string {
+  if (f.status === 'not_assessed' || f.status === 'self_reported') return 'Not answered yet';
+  if (f.status === 'not_provided') return 'Left blank';
+  return PROVENANCE_LABELS[f.status];
+}
+
+/**
+ * Answered fields are listed; unanswered ones are grouped on one line per
+ * status ("Not answered yet: Height, Movement"). Nothing is hidden and
+ * nothing blank is shown as a value.
+ */
 export function ProfileSummary({ profile, units, onEdit }: { profile: PlayerProfile; units: UnitPreferences; onEdit: (step: OnboardingStep) => void }) {
   return (
     <Stack gap={space.md}>
       {PROFILE_SECTIONS.map((section) => {
-        const missing = section.fields.filter((f) => profile[f.key].value === null || (Array.isArray(profile[f.key].value) && (profile[f.key].value as unknown[]).length === 0));
+        const answered = section.fields.filter((f) => !isBlank(profile[f.key]));
+        const blankGroups = new Map<string, string[]>();
+        for (const f of section.fields) {
+          if (!isBlank(profile[f.key])) continue;
+          const key = blankStatus(profile[f.key]);
+          blankGroups.set(key, [...(blankGroups.get(key) ?? []), f.label]);
+        }
         return (
           <Card key={section.step} testID={`summary-${section.step}`}>
-            <Stack gap={space.sm}>
+            <Stack gap={space.xs}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <AppText variant="subheading">{section.title}</AppText>
                 <Button compact variant="ghost" label="Edit" accessibilityLabel={`Edit ${section.title}`} onPress={() => onEdit(section.step)} testID={`edit-${section.step}`} />
               </Row>
-              {section.fields.map((f) => {
-                const value = f.format(profile, units);
-                return (
-                  <View key={f.key} style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
-                    <AppText variant="label" style={{ minWidth: 120 }}>
-                      {f.label}
-                    </AppText>
-                    {value ? <AppText style={{ flex: 1 }}>{value}</AppText> : <Badge label={statusText(profile[f.key])} />}
-                  </View>
-                );
-              })}
-              {missing.length === section.fields.length ? (
-                <AppText variant="caption" muted>
-                  Nothing entered in this section. That’s fine — the app will not guess.
+              {answered.map((f) => (
+                <View key={f.key} style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+                  <AppText variant="label" style={{ minWidth: 112 }}>
+                    {f.label}
+                  </AppText>
+                  <AppText style={{ flex: 1 }}>{f.format(profile, units)}</AppText>
+                </View>
+              ))}
+              {[...blankGroups.entries()].map(([status, labels]) => (
+                <AppText key={status} variant="caption" muted>
+                  {status}: {labels.join(', ')}
                 </AppText>
-              ) : null}
+              ))}
             </Stack>
           </Card>
         );

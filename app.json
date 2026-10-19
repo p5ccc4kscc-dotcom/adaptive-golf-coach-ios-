@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Adaptive Golf Coach",
-    "slug": "adaptive-golf-coach",
+    "name": "BadGolfer",
+    "slug": "badgolfer",
     "version": "0.1.0",
-    "scheme": "adaptivegolfcoach",
+    "scheme": "badgolfer",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.example.adaptivegolfcoach",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "BadGolfer"
       },
       "entitlements": {
         "com.apple.developer.default-data-protection": "NSFileProtectionComplete"
@@ -20,7 +21,7 @@
     "android": {
       "package": "com.example.adaptivegolfcoach",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A3A28",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -29,7 +30,12 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "BadGolfer",
+      "shortName": "BadGolfer",
+      "description": "BadGolfer — private, evidence-based golf coaching. Browser preview.",
+      "backgroundColor": "#F4F6F3",
+      "lang": "en-GB"
     },
     "plugins": [
       "expo-router",
@@ -39,6 +45,8 @@
     ],
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "description": "BadGolfer — a private, evidence-based golf coaching app.",
+    "backgroundColor": "#062618"
   }
 }

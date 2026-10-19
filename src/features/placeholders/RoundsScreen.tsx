@@ -10,7 +10,7 @@ export function RoundsScreen() {
   const router = useRouter();
   const rounds = useQuery((s) => s.repos.baseline.list(s.ownerId)).data ?? [];
   return (
-    <Screen testID="rounds">
+    <Screen testID="rounds" tab title="Rounds & Practice">
       <NotAvailable
         title="Scorecards and practice logging"
         milestone="M3"

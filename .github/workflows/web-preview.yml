@@ -43,7 +43,7 @@ jobs:
         run: npx eas-cli@latest init --non-interactive --force
       - name: Export web build
         if: steps.token.outputs.present == 'true'
-        run: npx expo export --platform web
+        run: npm run export:web
       - name: Deploy to EAS Hosting (production alias)
         if: steps.token.outputs.present == 'true'
         run: npx eas-cli@latest deploy --prod --non-interactive

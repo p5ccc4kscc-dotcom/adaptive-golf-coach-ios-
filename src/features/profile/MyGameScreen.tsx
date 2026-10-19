@@ -26,7 +26,7 @@ export function MyGameScreen() {
   const edit = (step: OnboardingStep) => router.push(`/profile/${step}`);
 
   return (
-    <Screen testID="my-game">
+    <Screen testID="my-game" tab title="My Game" subtitle="Equipment, profile and progress">
       <SectionHeader title="Equipment" />
       <Stack gap={space.sm}>
         <ListRow title="My Clubs" subtitle={`${data.clubs.length} owned`} onPress={() => router.push('/clubs')} testID="nav-my-clubs" />

@@ -11,6 +11,7 @@ import {
   Card,
   ChoiceChips,
   Dialog,
+  Disclosure,
   DialogAction,
   ProgressBar,
   Row,
@@ -30,7 +31,8 @@ export function BuildMyBag() {
   const data = useQuery(async (s) => {
     const active = await s.repos.bags.ensureDefault(s.ownerId);
     const [presets, owned, memberIds] = await Promise.all([s.repos.bags.list(s.ownerId), s.repos.clubs.list(s.ownerId), s.repos.bags.memberIds(active.id)]);
-    return { active, presets, owned, memberIds: new Set(memberIds) };
+    const counts = new Map(await Promise.all(presets.map(async (p) => [p.id, (await s.repos.bags.memberIds(p.id)).length] as const)));
+    return { active, presets, owned, memberIds: new Set(memberIds), counts };
   }).data;
   const [dialog, setDialog] = useState<{ title: string; message: string; actions: DialogAction[] } | null>(null);
   const [swap, setSwap] = useState<SwapState>(null);
@@ -44,7 +46,7 @@ export function BuildMyBag() {
   const [swapIn, setSwapIn] = useState<string | null>(null);
 
   if (!data) return null;
-  const { active, presets, owned, memberIds } = data;
+  const { active, presets, owned, memberIds, counts } = data;
   const inBag = owned.filter((c) => memberIds.has(c.id));
   const outOfBag = owned.filter((c) => !memberIds.has(c.id));
   const count = inBag.length;
@@ -84,15 +86,15 @@ export function BuildMyBag() {
   };
 
   return (
-    <Stack gap={space.lg}>
+    <Stack gap={space.md}>
       <Card>
         <Stack gap={space.sm}>
-          <AppText variant="caption" muted>
-            My Clubs holds everything you own. My Bag is the set you are taking out now. Changes save automatically; “Save Setup…” keeps a named copy (e.g. Everyday, Par-3). Switching bags never changes your clubs.
-          </AppText>
           <ChoiceChips
-            label="Current bag"
-            options={presets.map((p) => ({ value: p.id, label: `${p.name}${p.kind === 'practice' ? ' (practice)' : ''}` }))}
+            label="Bag setup in use"
+            options={presets.map((p) => ({
+              value: p.id,
+              label: `${p.name} · ${p.kind === 'practice' ? `${counts.get(p.id) ?? 0} (practice)` : `${counts.get(p.id) ?? 0}/${COMPETITION_BAG_LIMIT}`}`,
+            }))}
             value={active.id}
             onChange={async (id) => {
               if (!id || id === active.id) return;
@@ -106,11 +108,17 @@ export function BuildMyBag() {
             {bagCountLabel(active.kind, count)}
           </AppText>
           {isCompetition ? <ProgressBar value={count} max={COMPETITION_BAG_LIMIT} label={`${count} of ${COMPETITION_BAG_LIMIT} clubs in bag`} /> : <Badge label="Practice selection" tone="info" />}
-          {isCompetition ? (
+          <Disclosure label="How bags work" openLabel="Hide" testID="bag-help">
             <AppText variant="caption" muted>
-              Up to {COMPETITION_BAG_LIMIT} clubs, under the current Rules of Golf (check randa.org). Any number from 0 to {COMPETITION_BAG_LIMIT} is fine.
+              My Clubs holds everything you own. A bag setup is the set you take out. Ticking a club saves straight away; “Save Setup…” keeps a named copy
+              (e.g. Everyday, Par-3). Switching setups never changes your clubs.
             </AppText>
-          ) : null}
+            {isCompetition ? (
+              <AppText variant="caption" muted>
+                An on-course bag holds up to {COMPETITION_BAG_LIMIT} clubs, under the current Rules of Golf (check randa.org). Any number from 0 to {COMPETITION_BAG_LIMIT} is fine.
+              </AppText>
+            ) : null}
+          </Disclosure>
         </Stack>
       </Card>
 
@@ -266,11 +274,11 @@ export function BuildMyBag() {
         </Card>
       ) : null}
 
-      {inBag.length > 0 ? <SectionHeader title={`In ${active.name}`} /> : null}
+      {inBag.length > 0 ? <SectionHeader title={`In ${active.name} (${inBag.length})`} /> : null}
       {inBag.map((c) => (
         <ClubCard key={c.id} club={c} inBag onToggleBag={() => toggle(c)} onPress={() => router.push(`/clubs/${c.id}`)} />
       ))}
-      {outOfBag.length > 0 ? <SectionHeader title="In My Clubs, not in this bag" /> : null}
+      {outOfBag.length > 0 ? <SectionHeader title={`Not in this bag (${outOfBag.length})`} /> : null}
       {full && outOfBag.length > 0 ? (
         <AppText variant="caption" muted>
           The bag is full. Tick a club below to see swap options, or use Swap.

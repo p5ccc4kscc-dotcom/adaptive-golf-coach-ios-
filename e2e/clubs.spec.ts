@@ -107,7 +107,8 @@ test('unusual clubs: “W” wedge with unknown loft, custom driving iron, wedge
 
   await page.goto('./clubs');
   await expect(page.getByText('Wedge stamped “W”')).toBeVisible();
-  await expect(page.getByText('Brand not entered · Loft not known')).toBeVisible();
+  await expect(page.getByText('Loft not known')).toBeVisible();
+  await expect(page.getByText('Brand and model not entered').first()).toBeVisible();
   await expect(page.getByText('Driving iron', { exact: true })).toBeVisible();
   await expect(page.getByText('56° wedge')).toBeVisible();
   // A driving iron is filed under driving/utility irons, never hybrids.

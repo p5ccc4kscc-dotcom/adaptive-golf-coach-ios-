@@ -2,15 +2,18 @@ import { useRouter } from 'expo-router';
 
 import { advance, exploreWithEmptyProfile } from '@/domain/onboarding';
 import { useServices } from '@/services/AppServices';
+import { View } from 'react-native';
+
+import { Wordmark } from '@/ui/Brand';
 import { AppText, Button, Card, Screen, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
 const POINTS = [
-  'Your swing videos will be processed on this device. They are not uploaded anywhere.',
-  'Everything you enter is stored locally first. Optional iCloud backup needs extra setup and is not switched on.',
-  'Every question is optional. You can skip any step and change answers later in My Game.',
-  'The app will never invent measurements, distances, scores or swing faults. Unknown stays unknown.',
-  'This app supports your practice. It is not a substitute for a PGA professional or other qualified coach.',
+  'Every question is optional. Skip anything and change answers later in My Game.',
+  'Stored privately on this device. Cloud backup is not available yet.',
+  'Nothing is invented: no made-up distances, scores or swing faults. Unknown stays unknown.',
+  'Swing analysis is planned for the iPhone app (M1). Videos will be processed on your phone, not uploaded.',
+  'BadGolfer supports your practice. It does not replace a PGA professional or other qualified coach.',
 ];
 
 export function WelcomeStep() {
@@ -19,13 +22,18 @@ export function WelcomeStep() {
 
   return (
     <Screen testID="step-welcome">
+      <View style={{ alignItems: 'flex-start', paddingTop: space.sm }}>
+        <Wordmark size={30} withTagline />
+      </View>
       <AppText variant="title">Welcome</AppText>
-      <AppText muted>A private golf coach that learns from your own answers and evidence — nobody else’s.</AppText>
+      <AppText muted>Every golfer has something to work on. BadGolfer helps you find yours and improve — beginner or scratch — using only your own answers and evidence.</AppText>
       <Card>
-        <Stack gap={space.md}>
+        <Stack gap={space.sm}>
           <AppText variant="subheading">Before you start</AppText>
           {POINTS.map((p) => (
-            <AppText key={p}>• {p}</AppText>
+            <AppText key={p} variant="caption">
+              • {p}
+            </AppText>
           ))}
         </Stack>
       </Card>

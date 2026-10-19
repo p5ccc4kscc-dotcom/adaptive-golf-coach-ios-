@@ -9,7 +9,7 @@ import { space } from '@/ui/theme';
  */
 export function AnalyseScreen() {
   return (
-    <Screen testID="analyse">
+    <Screen testID="analyse" tab title="Analyse" subtitle="Swing video analysis">
       <NotAvailable
         title="Swing video analysis"
         milestone="M1"

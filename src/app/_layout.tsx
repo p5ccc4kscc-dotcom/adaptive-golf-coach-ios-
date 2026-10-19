@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppServicesProvider } from '@/services/AppServices';
 import { AppText, Button, Loading, Screen } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
+import { WebHeader } from '@/ui/WebHeader';
 
 export default function RootLayout() {
   const t = useTheme();
@@ -15,8 +16,7 @@ export default function RootLayout() {
       <AppServicesProvider
         renderLoading={() => <Loading label="Opening your private data…" />}
         renderConflict={() => (
-          <Screen testID="storage-conflict">
-            <AppText variant="title">Reload needed</AppText>
+          <Screen testID="storage-conflict" tab title="Reload needed">
             <AppText>
               Your golf data was changed in another tab or window. To avoid overwriting those changes, this page has stopped saving. Reload to
               continue with the latest data.
@@ -25,8 +25,7 @@ export default function RootLayout() {
           </Screen>
         )}
         renderError={(message, retry) => (
-          <Screen>
-            <AppText variant="title">Something went wrong</AppText>
+          <Screen tab title="Something went wrong">
             <AppText>Your data could not be opened. Nothing has been deleted.</AppText>
             <AppText variant="caption" muted>
               {message}
@@ -42,11 +41,14 @@ export default function RootLayout() {
             headerTitleStyle: { color: t.text },
             contentStyle: { backgroundColor: t.bg },
             headerBackTitle: 'Back',
+            headerShadowVisible: false,
+            // The browser preview uses a compact header; the iPhone app keeps the native one.
+            header: Platform.OS === 'web' ? (props) => <WebHeader {...props} /> : undefined,
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding/[step]" options={{ title: 'Set up', headerBackVisible: false }} />
+          <Stack.Screen name="onboarding/[step]" options={{ title: 'Set up BadGolfer', headerBackVisible: false }} />
           <Stack.Screen name="clubs/index" options={{ title: 'My Clubs' }} />
           <Stack.Screen name="clubs/catalogue" options={{ title: 'Club Face Gallery' }} />
           <Stack.Screen name="clubs/add" options={{ title: 'Add club' }} />

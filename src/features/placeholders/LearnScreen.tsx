@@ -3,7 +3,7 @@ import { space } from '@/ui/theme';
 
 export function LearnScreen() {
   return (
-    <Screen testID="learn">
+    <Screen testID="learn" tab title="Learn & Train">
       <NotAvailable
         title="Coaching paths, verified lessons and drills"
         milestone="M2"

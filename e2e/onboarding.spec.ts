@@ -30,7 +30,8 @@ test('Scenario A: first-time left-handed golfer completes onboarding, builds a b
 
   // Step 4: tendencies & goals — wording mirrors for a left-handed golfer.
   await expect(page.getByTestId('step-goals')).toBeVisible();
-  await expect(page.getByText('For you: curves to the left')).toBeVisible();
+  await expect(page.getByTestId('challenge-slice_right')).toHaveText('Slice — curves to the left');
+  await expect(page.getByText(/right-hander|right-handed\)/)).toHaveCount(0);
   await page.getByTestId('challenge-slice_right').click();
   await page.getByTestId('goal-text').fill('Keep tee shots playable');
   await page.getByTestId('goal-measure').fill('12 of 20 range drives playable');
@@ -83,23 +84,28 @@ test('Scenario A: first-time left-handed golfer completes onboarding, builds a b
   await expect(page.getByTestId('summary-clubs').getByText('6 owned · 5 / 14 in bag')).toBeVisible();
   const plan = page.getByTestId('starter-plan');
   await expect(plan.getByText('Start line and curve log — with your Driver')).toBeVisible();
+  await expect(plan.getByText(/add a putter to My Bag/)).toHaveCount(0);
+  await plan.getByTestId('starter-plan-details').click();
   await expect(plan.getByText(/add a putter to My Bag/)).toBeVisible();
+  await expect(plan.getByText(/You reported: Slice — curves to the left/)).toBeVisible();
   await shot(page, '05-review');
   await page.getByTestId('finish-setup').click();
 
   await expect(page.getByText('Hello, Test Golfer Alpha')).toBeVisible();
-  await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 5 / 14 in bag · 6 owned');
+  await expect(page.getByTestId('today-bag-count')).toHaveAccessibleName('My Bag: 5 / 14 in bag. Open Build My Bag');
+  await expect(page.getByTestId('today-owned-count')).toContainText('6');
   await shot(page, '06-today');
 
   // Relaunch: everything persists.
   await page.reload();
   await expect(page.getByText('Hello, Test Golfer Alpha')).toBeVisible();
-  await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 5 / 14 in bag · 6 owned');
+  await expect(page.getByTestId('today-bag-count')).toHaveAccessibleName('My Bag: 5 / 14 in bag. Open Build My Bag');
+  await expect(page.getByTestId('today-owned-count')).toContainText('6');
 
   await page.goto('./clubs');
   await expect(page.getByTestId('owned-count')).toHaveText('6 clubs owned');
-  await expect(page.getByText('Example Maker C · Series 7 · Loft not entered')).toBeVisible();
-  await expect(page.getByText('Brand not entered · Loft not entered')).toBeVisible();
+  await expect(page.getByText('Example Maker C · Series 7', { exact: true })).toBeVisible();
+  await expect(page.getByText('Brand and model not entered')).toBeVisible();
   await expect(page.getByLabel('Add Putter (Example Maker E) to bag')).toBeVisible();
   await shot(page, '07-my-clubs');
 });
@@ -119,14 +125,16 @@ test('onboarding resumes at the same step after relaunch, and fully skipped onbo
   await expect(page.getByTestId('starter-plan').getByText(/Posture and alignment awareness/)).toBeVisible();
   await page.getByTestId('finish-setup').click();
   await expect(page.getByText('Today', { exact: true }).first()).toBeVisible();
-  await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 0 / 14 in bag · 0 owned');
+  await expect(page.getByTestId('today-bag-count')).toHaveAccessibleName('My Bag: 0 / 14 in bag. Open Build My Bag');
+  await expect(page.getByTestId('today-owned-count')).toContainText('0');
 });
 
 test('explore with an empty profile shows no invented data and a gentle setup card', async ({ page }) => {
   await page.goto('./');
   await page.getByTestId('explore-empty').click();
   await expect(page.getByTestId('finish-setup-card')).toBeVisible();
-  await expect(page.getByTestId('today-bag-count')).toHaveText('My Bag: 0 / 14 in bag · 0 owned');
+  await expect(page.getByTestId('today-bag-count')).toHaveAccessibleName('My Bag: 0 / 14 in bag. Open Build My Bag');
+  await expect(page.getByTestId('today-owned-count')).toContainText('0');
   await page.goto('./analyse');
   await expect(page.getByText(/Not available yet · M1/)).toBeVisible();
   await page.goto('./game');

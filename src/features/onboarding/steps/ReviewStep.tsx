@@ -8,7 +8,7 @@ import { formatLocalDate } from '@/domain/dates';
 import { complete } from '@/domain/onboarding';
 import { PlayerProfile } from '@/domain/profile';
 import { useQuery, useServices } from '@/services/AppServices';
-import { AppText, Button, Card, NotAvailable, Row, Stack } from '@/ui/components';
+import { AppText, Button, Card, Disclosure, NotAvailable, Row, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
 import { ProfileSummary } from '../../profile/ProfileSummary';
@@ -44,7 +44,7 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
       step="review"
       {...props}
       onSave={async () => true}
-      intro="This is exactly what you entered. Anything blank stays unknown until you add it."
+      intro="Exactly what you entered. Blanks stay unknown until you add them."
       footer={
         <Stack gap={space.sm}>
           <Button label="Finish setup" onPress={finish} testID="finish-setup" />
@@ -54,7 +54,7 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
     >
       <ProfileSummary profile={profile} units={units} onEdit={editStep} />
       <Card testID="summary-goals">
-        <Stack gap={space.sm}>
+        <Stack gap={space.xs}>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="subheading">Goals</AppText>
             <Button compact variant="ghost" label="Edit" accessibilityLabel="Edit goals" onPress={() => editStep('goals')} />
@@ -63,18 +63,22 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
         </Stack>
       </Card>
       <Card testID="summary-clubs">
-        <Stack gap={space.sm}>
+        <Stack gap={space.xs}>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="subheading">Clubs</AppText>
             <Button compact variant="ghost" label="Edit" accessibilityLabel="Edit clubs" onPress={() => editStep('clubs')} />
           </Row>
           <AppText>{data ? `${data.clubs.length} owned · ${bagCountLabel(data.bag.kind, data.members.length)}` : ''}</AppText>
-          {data?.members.length ? <AppText variant="caption" muted>In bag: {data.members.map((c) => `${clubDisplayName(c)}${c.brand ? ` (${c.brand})` : ''}`).join(', ')}</AppText> : null}
+          {data?.members.length ? (
+            <Disclosure label={`Show the ${data.members.length} clubs in ${data.bag.name}`} openLabel="Hide clubs" testID="review-bag-clubs">
+              <AppText variant="caption">{data.members.map((c) => `${clubDisplayName(c)}${c.brand ? ` (${c.brand})` : ''}`).join(', ')}</AppText>
+            </Disclosure>
+          ) : null}
           {data && data.clubs.length === 0 ? <AppText variant="caption" muted>No clubs added. Club-specific practice will be suggested once you add some.</AppText> : null}
         </Stack>
       </Card>
       <Card testID="summary-baseline">
-        <Stack gap={space.sm}>
+        <Stack gap={space.xs}>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="subheading">Baseline</AppText>
             <Button compact variant="ghost" label="Edit" accessibilityLabel="Edit baseline" onPress={() => editStep('baseline')} />
@@ -95,7 +99,7 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
         </Stack>
       </Card>
       <StarterPlanCard profile={profile} bag={data?.members ?? []} />
-      <NotAvailable title="Logging this session" detail="Recording drill outcomes and skill progress arrives with the curriculum engine in M2." milestone="M2" />
+      <NotAvailable title="Logging this session" detail="Recording drill results and skill progress comes with the coaching engine." milestone="M2" />
     </StepFrame>
   );
 }

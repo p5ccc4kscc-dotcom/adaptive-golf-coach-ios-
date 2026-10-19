@@ -1,0 +1,16 @@
+<!-- BadGolfer mark: a golf ball whose flight line climbs to an upward arrow ("Get Better").
+     Original artwork for this project. Drawn on a 1024 grid. -->
+<g id="badgolfer-mark">
+  <!-- flight line -->
+  <path d="M330 690 C 430 560, 560 430, 760 300" fill="none" stroke="#C6F15A" stroke-width="64" stroke-linecap="round"/>
+  <!-- arrow head -->
+  <path d="M640 262 L 800 272 L 772 430" fill="none" stroke="#C6F15A" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ball -->
+  <circle cx="300" cy="724" r="150" fill="#FFFFFF"/>
+  <g fill="#D7E2DB">
+    <circle cx="250" cy="680" r="17"/><circle cx="300" cy="664" r="17"/><circle cx="350" cy="680" r="17"/>
+    <circle cx="226" cy="730" r="17"/><circle cx="276" cy="718" r="17"/><circle cx="326" cy="718" r="17"/><circle cx="374" cy="730" r="17"/>
+    <circle cx="250" cy="778" r="17"/><circle cx="300" cy="770" r="17"/><circle cx="350" cy="778" r="17"/>
+    <circle cx="300" cy="822" r="15"/>
+  </g>
+</g>

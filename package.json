@@ -1,5 +1,5 @@
 {
-  "name": "adaptive-golf-coach",
+  "name": "badgolfer",
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
@@ -47,12 +47,13 @@
     "test": "jest",
     "test:unit": "jest --selectProjects unit",
     "test:ui": "jest --selectProjects ui",
-    "export:web": "expo export --platform web",
+    "export:web": "expo export --platform web && node scripts/finalize-web.mjs",
     "serve:web": "node scripts/serve-dist.mjs",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm test",
-    "export:pages": "EXPO_BASE_URL=/adaptive-golf-coach-ios- expo export --platform web && cp dist/index.html dist/404.html",
-    "test:e2e:pages": "BASE_PATH=/adaptive-golf-coach-ios- playwright test"
+    "export:pages": "EXPO_BASE_URL=/adaptive-golf-coach-ios- expo export --platform web && EXPO_BASE_URL=/adaptive-golf-coach-ios- node scripts/finalize-web.mjs --spa-fallback",
+    "test:e2e:pages": "BASE_PATH=/adaptive-golf-coach-ios- playwright test",
+    "brand:icons": "node scripts/render-brand-assets.mjs"
   },
   "private": true,
   "overrides": {

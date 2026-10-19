@@ -1,4 +1,6 @@
-# Adaptive Golf Coach (working name)
+# BadGolfer
+
+**BadGolfer — Get Better.** _(proposed tagline)_
 
 A private, evidence-based golf coaching app for iPhone, built with **React Native + Expo +
 TypeScript** and compiled in the cloud with **EAS** (no Mac or Xcode needed).
@@ -7,9 +9,15 @@ Every golfer starts from a **blank profile** and enters their own information. N
 real person is built in. Unknown values stay unknown. The app will not invent measurements,
 distances, scores or swing faults.
 
-> Status: **M0 (foundation) is implemented.** It covers onboarding, the full club catalogue,
-> per-club Brand/Model, My Clubs, Build My Bag and local persistence. The swing analyser (M1) has
-> not been started. See [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+Every golfer has something to work on, from a first lesson to a scratch handicap. The name is
+self-aware, not a label. See [`docs/BRAND.md`](docs/BRAND.md).
+
+> Status: **M0 is accepted** by the owner for the Safari browser-preview scope. **M0.1** (BadGolfer
+> branding and iPhone layout fixes) is in review. Native iOS is not yet validated. Swing analysis
+> (M1a) and cloud backup are not available yet. See [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+>
+> The repository keeps its original name (`adaptive-golf-coach-ios-`), and the original storage names
+> are kept so that saved data is never orphaned.
 
 ## What works today (M0)
 
@@ -37,20 +45,19 @@ distances, scores or swing faults.
   JSON export and **Delete all my data** are included, and the sync status says plainly that
   nothing is backed up yet.
 - Analyse, Learn and Rounds show clearly labelled **“Not available yet”** cards. No sample or
-  fake analysis is shown anywhere.
+  fake analysis is shown anywhere. Settings and Today list what is available, experimental or planned.
 
 ## Viewing it on your iPhone
 
 See [`docs/BUILD_AND_RUN.md`](docs/BUILD_AND_RUN.md). In short:
 
-1. **Browser preview (free, no Apple membership):** GitHub Pages at
-   `https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/`, once Pages is switched on
-   (Settings → Pages → Source: GitHub Actions) and the M0 branch is merged to `main`. *Not yet
-   verified live* (see the doc).
+1. **Browser preview (free, no Apple membership):** open
+   `https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/` in Safari. It is redeployed on
+   every merge to `main`.
 2. **Real iPhone app:** this needs the Apple Developer Program (US$99/year). It is first
    required in M1, for the on-device swing analyser.
 
-Screenshots from the automated browser tests are in [`docs/screenshots/m0`](docs/screenshots/m0).
+Screenshots from the automated browser tests: [`docs/screenshots/m0`](docs/screenshots/m0), and the M0.1 before/after set in [`docs/screenshots/m0.1`](docs/screenshots/m0.1).
 
 ## Developer commands
 
@@ -62,6 +69,8 @@ npm test               # Jest: domain + real-SQLite data tests + native componen
 npm run export:web     # build the browser preview into dist/
 npm run test:e2e       # Playwright end-to-end tests against dist/ (Chromium, iPhone-sized)
 npm run export:pages && npm run test:e2e:pages   # same, for the GitHub Pages sub-path build
+node scripts/check-upgrade.mjs <old-dist> <new-dist>  # data saved by an old build survives a new one
+npm run brand:icons    # re-render the icon set from assets/brand/*.svg
 npx expo start         # dev server (needs a computer; not required for the owner)
 ```
 

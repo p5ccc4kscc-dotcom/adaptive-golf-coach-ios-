@@ -1,4 +1,6 @@
-import { PROFILE_FIELD_KEYS, ballFlightDirectionHint, emptyProfile, validateBaselineRound } from '@/domain/profile';
+import { Challenge, PROFILE_FIELD_KEYS, PlayingHand, ballFlightDirectionHint, challengeLabel, emptyProfile, validateBaselineRound } from '@/domain/profile';
+import { buildStarterPlanOutline } from '@/domain/starterPlan';
+import { makeClub as club } from '../fixtures/clubFactory';
 import { ONBOARDING_STEPS, advance, complete, exploreWithEmptyProfile, initialProgress, isSkippable, shouldShowOnboarding } from '@/domain/onboarding';
 import { localDateString } from '@/domain/dates';
 import { cmToFeetInches, feetInchesToCm, parseNumberInput, toMetres, fromMetres } from '@/domain/units';
@@ -21,11 +23,54 @@ describe('hand-aware ball flight wording', () => {
   it('uses neutral wording when hand is unknown', () => {
     expect(ballFlightDirectionHint(null, 'slice_right')).toBeNull();
     expect(ballFlightDirectionHint('not_sure', 'slice_right')).toBeNull();
+    expect(ballFlightDirectionHint('prefer_not_to_say', 'hook_left')).toBeNull();
   });
   it('mirrors directions for left-handed golfers', () => {
-    expect(ballFlightDirectionHint('right', 'slice_right')).toBe('For you: curves to the right');
-    expect(ballFlightDirectionHint('left', 'slice_right')).toBe('For you: curves to the left');
-    expect(ballFlightDirectionHint('left', 'pull')).toBe('For you: starts right of target');
+    expect(ballFlightDirectionHint('right', 'slice_right')).toBe('curves to the right');
+    expect(ballFlightDirectionHint('left', 'slice_right')).toBe('curves to the left');
+    expect(ballFlightDirectionHint('left', 'pull')).toBe('starts right of target, little curve');
+  });
+
+  const directional: Challenge[] = ['slice_right', 'hook_left', 'push', 'pull'];
+
+  it('right-handed golfers see only right-handed descriptions', () => {
+    expect(challengeLabel('slice_right', 'right')).toBe('Slice — curves to the right');
+    expect(challengeLabel('hook_left', 'right')).toBe('Hook — curves to the left');
+    expect(challengeLabel('push', 'right')).toBe('Push — starts right of target, little curve');
+    expect(challengeLabel('pull', 'right')).toBe('Pull — starts left of target, little curve');
+    for (const c of directional) expect(challengeLabel(c, 'right')).not.toMatch(/handed|hander/);
+  });
+
+  it('left-handed golfers see only left-handed descriptions', () => {
+    expect(challengeLabel('slice_right', 'left')).toBe('Slice — curves to the left');
+    expect(challengeLabel('hook_left', 'left')).toBe('Hook — curves to the right');
+    expect(challengeLabel('push', 'left')).toBe('Push — starts left of target, little curve');
+    expect(challengeLabel('pull', 'left')).toBe('Pull — starts right of target, little curve');
+    for (const c of directional) expect(challengeLabel(c, 'left')).not.toMatch(/handed|hander/);
+  });
+
+  it('unknown hand is never guessed: both directions are explained', () => {
+    for (const hand of [null, 'not_sure', 'prefer_not_to_say'] as const) {
+      expect(challengeLabel('slice_right', hand)).toBe('Slice — curves right for a right-hander, left for a left-hander');
+      expect(challengeLabel('pull', hand)).toBe('Pull — starts left of target for a right-hander, right for a left-hander');
+    }
+  });
+
+  it('changing hand changes the explanation, including in the starter plan', () => {
+    const profile = emptyProfile();
+    profile.challenges = { ...profile.challenges, value: ['slice_right'], status: 'self_reported' };
+    const reason = (hand: PlayingHand | null) => {
+      profile.playingHand = { ...profile.playingHand, value: hand, status: hand ? 'self_reported' : 'not_assessed' };
+      return buildStarterPlanOutline(profile, []).unavailable.join(' ') + buildStarterPlanOutline(profile, [club('driver')]).items[0]!.reason;
+    };
+    expect(reason('right')).toContain('Slice — curves to the right');
+    expect(reason('left')).toContain('Slice — curves to the left');
+    expect(reason(null)).toContain('for a right-hander, left for a left-hander');
+  });
+
+  it('non-directional challenges are worded the same for everyone', () => {
+    expect(challengeLabel('putt_pace', 'right')).toBe(challengeLabel('putt_pace', 'left'));
+    expect(challengeLabel('putt_pace', null)).toBe('Putt pace');
   });
 });
 

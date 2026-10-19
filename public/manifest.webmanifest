@@ -1,0 +1,15 @@
+{
+  "name": "BadGolfer",
+  "short_name": "BadGolfer",
+  "description": "BadGolfer — private, evidence-based golf coaching. Browser preview.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#F4F6F3",
+  "theme_color": "#F4F6F3",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

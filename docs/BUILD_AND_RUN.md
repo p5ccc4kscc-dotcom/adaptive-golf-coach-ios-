@@ -19,26 +19,21 @@ in that browser, on that device (SQLite compiled to WebAssembly, stored in Index
 
 ### 1a. GitHub Pages (primary — no extra account)
 
-Address once deployed: **https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/**
+Address: **https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/**
 
-One-time setup from iPad/iPhone Safari on github.com:
+**Status: live.** GitHub Pages is enabled (Source: GitHub Actions). The first deployment ran when
+PR #1 was merged (workflow run 39327682405, “Reported success!”). The owner tested M0 there in Safari
+on their iPhone and accepted it on 2026-10-19. Every merge to `main` redeploys automatically; pull
+requests do **not** change the live preview until they are merged.
 
-1. Open the repository, then **Settings → Pages → Build and deployment → Source** and choose
-   **GitHub Actions**.
-2. Merge the M0 branch (`claude/m0-foundation`) into `main`. The push starts the
-   **“Deploy browser preview (GitHub Pages)”** workflow (`.github/workflows/pages.yml`). GitHub
-   only lets the `main` branch deploy to Pages.
-3. When the workflow is green (**Actions** tab), open the address above in Safari. Optionally
-   use **Share → Add to Home Screen**.
+**Add to Home Screen.** The icon and the name **BadGolfer** come from `apple-touch-icon.png` and
+`apple-mobile-web-app-title`.
 
-Every later merge to `main` redeploys automatically.
-
-**Status: not yet verified end to end.** The workflow has not run yet, because Pages is not
-enabled and the branch is not merged. Verified so far: the identical sub-path build
-(`EXPO_BASE_URL=/adaptive-golf-coach-ios-`, with `404.html` fallback for deep links) passes all
-8 browser end-to-end tests. They run in Chromium at iPhone size, against a local server that
-mimics GitHub Pages. CI repeats this on every push. Once the first deployment has run I will
-check its logs and open the live URL.
+> **Important:** iOS may open a Home Screen icon as a separate *web app* (the “Open as Web App”
+> option). A web app has **its own storage, separate from Safari**, so it starts empty. Your data in
+> Safari is not lost; it is still there when you open the address in Safari. To keep one copy, turn
+> “Open as Web App” off when adding the icon, or keep using Safari. The manifest asks for
+> `display: browser`; whether iOS honours that has not been verified on a device.
 
 ### 1b. EAS Hosting (alternative)
 
@@ -51,7 +46,8 @@ while GitHub Pages works, and it has not been run.
 - The swing analyser (Apple Vision) will **never** run in the browser preview.
 - Data lives in that browser only. Clearing Safari website data deletes it. Private browsing
   may block storage; the app then shows a warning.
-- Two open tabs can overwrite each other’s saves.
+- Two open tabs cannot overwrite each other: the out-of-date one stops and asks for a reload.
+- A Home Screen web app has storage separate from Safari (see above).
 - The page is publicly reachable by anyone with the address. Your golf data is still stored
   only in your own browser; nothing you enter is uploaded.
 - It looks and behaves close to the app, but small iOS-specific differences (fonts, gestures)

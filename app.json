@@ -46,7 +46,6 @@
     "experiments": {
       "typedRoutes": false
     },
-    "description": "BadGolfer — a private, evidence-based golf coaching app.",
-    "backgroundColor": "#062618"
+    "description": "BadGolfer — a private, evidence-based golf coaching app."
   }
 }

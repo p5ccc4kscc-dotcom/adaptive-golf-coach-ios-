@@ -1,0 +1,4 @@
+# The bundled actionlint label list predates GitHub's macos-26 hosted runner image.
+self-hosted-runner:
+  labels:
+    - macos-26

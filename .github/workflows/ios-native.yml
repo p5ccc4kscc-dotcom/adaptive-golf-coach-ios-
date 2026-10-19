@@ -1,0 +1,111 @@
+name: iOS native (macOS)
+
+# Free on public repositories. Proves the Apple Vision module compiles with this Expo SDK and that
+# its analysis core works with the real AVFoundation and Vision frameworks. It does not install
+# anything on an iPhone; that needs an EAS development build (Apple Developer Program).
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'modules/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-native.yml'
+  pull_request:
+    paths:
+      - 'modules/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-native.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ios-native-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Real photograph of a person (Apache-2.0 tfjs-models test data). Downloaded at test time and
+  # checksum-verified; not stored in this repository.
+  TEST_IMAGE_URL: https://raw.githubusercontent.com/tensorflow/tfjs-models/master/pose-detection/test_data/pose.jpg
+  TEST_IMAGE_SHA256: c8a830ed683c0276d713dd5aeda28f415f10cd6291972084a40d0d8b934ed62b
+
+jobs:
+  vision-core-macos:
+    name: Vision core tests (macOS, real AVFoundation + Apple Vision)
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: sw_vers && xcodebuild -version && swift --version
+      - name: Download the test photograph
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/person.jpg" "$TEST_IMAGE_URL"
+          echo "$TEST_IMAGE_SHA256  $RUNNER_TEMP/person.jpg" | shasum -a 256 -c -
+      - name: swift test
+        working-directory: modules/golf-vision/ios
+        env:
+          GOLFVISION_TEST_IMAGE: ${{ runner.temp }}/person.jpg
+        run: swift test
+
+  vision-core-ios-simulator:
+    name: Vision core tests (iOS Simulator)
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the test photograph
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/person.jpg" "$TEST_IMAGE_URL"
+          echo "$TEST_IMAGE_SHA256  $RUNNER_TEMP/person.jpg" | shasum -a 256 -c -
+      - name: Pick an available iPhone simulator
+        id: sim
+        run: |
+          udid=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in sorted(d.items(), reverse=True) if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl list devices available | grep "$udid"
+      - name: xcodebuild test (Swift package on the simulator)
+        working-directory: modules/golf-vision/ios
+        env:
+          # Passed through to the test process by the TEST_RUNNER_ prefix.
+          TEST_RUNNER_GOLFVISION_TEST_IMAGE: ${{ runner.temp }}/person.jpg
+        run: |
+          set -o pipefail
+          xcodebuild test -scheme GolfVisionCore -destination "id=${{ steps.sim.outputs.udid }}" 2>&1 | tee "$RUNNER_TEMP/sim-test.log" | grep -E "Test Case|error:|passed|failed|skipped|GOLFVISION" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/sim-test.log"
+
+  ios-app-build:
+    name: Build the iOS app with the native module (simulator, unsigned)
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate the native project (expo prebuild + pod install)
+        run: npx expo prebuild --platform ios --clean
+      - name: Check the module was autolinked
+        run: grep -q "GolfVision" ios/Podfile.lock && grep -n "GolfVision" ios/Podfile.lock
+      - name: xcodebuild (Debug, iOS Simulator, no signing)
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/BadGolfer.xcworkspace -scheme BadGolfer -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$RUNNER_TEMP/build.log" | grep -E "error:|warning: .*GolfVision|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "\*\* BUILD SUCCEEDED \*\*" "$RUNNER_TEMP/build.log"
+          grep -c "GolfVisionModule.swift" "$RUNNER_TEMP/build.log"
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: ${{ runner.temp }}/build.log
+          retention-days: 7

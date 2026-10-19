@@ -1,9 +1,10 @@
 import { compareAnalyses } from '@/domain/pose/compare';
-import { RawPoseFrame, decodeFrames } from '@/domain/pose/decode';
+import { decodeFrames } from '@/domain/pose/decode';
 import { JOINTS, JOINT_INDEX, leadSide } from '@/domain/pose/joints';
 import { NOT_MEASURABLE, computeMeasurements, toObservations } from '@/domain/pose/measures';
-import { detectPhases } from '@/domain/pose/phases';
+import { applyPhaseMarks, detectPhases } from '@/domain/pose/phases';
 import { assessPose, assessVideo } from '@/domain/pose/quality';
+import { planSampling, swingWindow } from '@/domain/pose/sampling';
 
 import { syntheticSwing } from '../fixtures/syntheticSwing';
 
@@ -165,4 +166,44 @@ describe('comparing two recordings', () => {
   });
 });
 
-export type { RawPoseFrame };
+
+describe('sampling plan (performance-aware, spec §4.1)', () => {
+  it('analyses short clips frame by frame and long or slow-motion clips in two passes', () => {
+    expect(planSampling({ ...META, estimatedFrameCount: 320 }).passes).toBe(1);
+    expect(planSampling({ ...META, nominalFrameRate: 240, durationSeconds: 8, estimatedFrameCount: 1920 }).passes).toBe(2);
+  });
+  it('keeps a margin around the swing found by the coarse pass', () => {
+    const { frames, expected } = syntheticSwing({ fps: 30, addressS: 2 });
+    const w = swingWindow(detectPhases(decodeFrames(frames), SIZE), 10)!;
+    expect(w.startSeconds).toBeLessThan(expected.address);
+    expect(w.endSeconds).toBeGreaterThan(expected.finish);
+    expect(w.startSeconds).toBeGreaterThan(1);
+  });
+  it('returns no window when the coarse pass found no swing', () => {
+    expect(swingWindow({ candidates: {}, unavailable: [], notes: [] }, 10)).toBeNull();
+  });
+});
+
+describe('golfer phase marks', () => {
+  it('replace the automatic candidate and are labelled manual', () => {
+    const frames = decodeFrames(syntheticSwing({ fps: 120 }).frames);
+    const auto = detectPhases(frames, SIZE);
+    const marked = applyPhaseMarks(auto, [{ phase: 'top', frame: 160, t: frames[160]!.t }], frames);
+    expect(marked.candidates.top).toMatchObject({ frame: 160, confidence: 'manual' });
+    expect(marked.candidates.impact).toEqual(auto.candidates.impact);
+  });
+});
+
+describe('face-on head movement towards the target', () => {
+  it('is positive when the head moves towards the lead-shoulder side and needs the hand', () => {
+    const frames = decodeFrames(syntheticSwing({ fps: 120, headShiftAtTop: 0.02 }).frames);
+    const phases = detectPhases(frames, SIZE);
+    const right = computeMeasurements(frames, SIZE, phases, { hand: 'right', view: 'fo' }).find((m) => m.id === 'head_target_top')!;
+    // Lead (left) shoulder is at image x 0.55, trail at 0.45: target is towards +x. 0.02 / 0.10 = +20%.
+    expect(right.value).toBeCloseTo(0.2, 2);
+    const left = computeMeasurements(frames, SIZE, phases, { hand: 'left', view: 'fo' }).find((m) => m.id === 'head_target_top')!;
+    expect(left.value).toBeCloseTo(-0.2, 2);
+    expect(computeMeasurements(frames, SIZE, phases, { hand: 'right', view: 'dtl' }).find((m) => m.id === 'head_target_top')!.value).toBeNull();
+    expect(computeMeasurements(frames, SIZE, phases, { hand: null, view: 'fo' }).find((m) => m.id === 'head_target_top')!.value).toBeNull();
+  });
+});

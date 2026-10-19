@@ -20,6 +20,18 @@ export interface PoseFrame {
 }
 
 export type CameraView = 'fo' | 'dtl' | 'other';
+
+export const SHOT_TYPES = ['full', 'three_quarter', 'pitch', 'chip', 'putt', 'drill', 'other'] as const;
+export type ShotType = (typeof SHOT_TYPES)[number];
+export const SHOT_TYPE_LABELS: Record<ShotType, string> = {
+  full: 'Full swing',
+  three_quarter: 'Three-quarter',
+  pitch: 'Pitch',
+  chip: 'Chip',
+  putt: 'Putt',
+  drill: 'Drill / practice move',
+  other: 'Other',
+};
 export const CAMERA_VIEW_LABELS: Record<CameraView, string> = { fo: 'Face-on', dtl: 'Down the line', other: 'Other angle' };
 
 export interface VideoMeta {

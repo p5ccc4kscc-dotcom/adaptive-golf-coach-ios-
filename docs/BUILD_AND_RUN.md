@@ -53,19 +53,43 @@ while GitHub Pages works, and it has not been run.
 - It looks and behaves close to the app, but small iOS-specific differences (fonts, gestures)
   will exist.
 
-## Option 2 — The real iPhone app (needed from M1)
+## Option 2 — The real iPhone app (needed to test M1a on your phone)
 
-Needs the **Apple Developer Program** (US$99/year, about £79 in the UK; check the current price).
+### What is free and already done
 
-1. Join the Apple Developer Program. This can be done in the Apple Developer app on iPhone.
-2. Create an **App Store Connect API key** in a browser (App Store Connect → Users and Access
-   → Integrations). EAS can then create certificates and profiles non-interactively, so no
-   Mac is needed. I will confirm the exact current EAS steps when we reach M1.
-3. Register your iPhone for internal builds, using a link opened on the phone that installs a
-   profile.
-4. On the iPhone: **Settings → Privacy & Security → Developer Mode → On**.
-5. EAS builds the `development` or `preview` profile in the cloud (`eas.json`). You install it
-   from a link. Later builds go to **TestFlight** via EAS Submit.
+- **Native compile check:** GitHub Actions' free macOS runners build the whole iOS app, including
+  the Apple Vision module, for the iOS Simulator with no signing and no Apple account
+  (`.github/workflows/ios-native.yml`).
+- **Real Apple Vision test:** the same runners test the analysis core with real AVFoundation and
+  Apple Vision on macOS, including detection on a real photograph.
+- **Not possible for free:** running Vision body pose on the iOS Simulator (Apple does not
+  support it; seen in CI), and installing on your iPhone.
+
+### Payment needed: Apple Developer Program — please approve before I rely on it
+
+| Question | Answer |
+|---|---|
+| 1. What needs it? | Installing BadGolfer, the real iPhone app with the Apple Vision analyser, on your iPhone, through TestFlight or an internal build. |
+| 2. Why there is no free way | iOS installs only apps signed with an Apple developer certificate. The only free route is Xcode on a Mac (7-day “personal team” installs), and you have no Mac. The browser preview cannot run Apple Vision, and the Simulator cannot run Vision body pose. |
+| 3. Cost | **US$99 per year.** Apple charges a local price in the UK; confirm it on Apple's enrolment page, as it changes. |
+| 4. Recurring? | **Yes, yearly.** If it lapses, TestFlight builds stop working and the app can't be distributed. |
+| 5. What you get | TestFlight installs of every new build on your iPhone and iPad (internal testing needs no App Review); the on-device swing analyser with your own videos; later, App Store release. |
+
+**EAS Build** (cloud build and signing, no Mac): the free Expo plan includes a monthly allowance of
+iOS builds. That is enough for testing, but check the current numbers on expo.dev → Pricing.
+Nothing on EAS needs paying for unless we exceed the free plan. I will ask before that happens.
+
+### Steps, once you approve (none needed yet)
+
+1. **Choose the permanent bundle identifier** (proposal in `docs/BRAND.md`). It is fixed once the
+   App Store Connect record exists.
+2. Enrol in the Apple Developer Program, for example in the Apple Developer app on iPhone.
+3. In App Store Connect (in a browser): create an **API key** (Users and Access → Integrations),
+   with the role App Manager. EAS then creates certificates and profiles without a Mac.
+4. Create a free Expo account and an access token. Add it to this repository as the secret
+   `EXPO_TOKEN` (GitHub → Settings → Secrets and variables → Actions).
+5. I add a workflow that runs `eas build --platform ios --profile production` and
+   `eas submit --platform ios`. The build appears in **TestFlight** on your iPhone.
 
 ## Costs
 
@@ -74,8 +98,9 @@ Needs the **Apple Developer Program** (US$99/year, about £79 in the UK; check t
 | GitHub (public repo) | now | Free. Actions on public repos are free. |
 | GitHub Pages | now (browser preview) | Free for public repositories |
 | Expo account + EAS Hosting | optional alternative | Free plan (limits on deployments and bandwidth) |
-| EAS Build | M1+ | Free plan: a limited number of low-priority builds per month. Starter plan is US$19/month with US$45 build credit, if ever needed. |
-| Apple Developer Program | M1 (native analyser on device) | US$99/year |
+| EAS Build | M1a device builds | Free plan: a limited number of low-priority builds per month (check current limits). Paid plans only if ever needed; I will ask first. |
+| GitHub Actions macOS runners | now (native compile and Vision tests) | Free for public repositories |
+| Apple Developer Program | M1a on your iPhone | US$99/year, recurring. **Awaiting your approval** |
 | iOS simulator E2E on EAS Workflows | optional | Cost/availability on the free plan **not yet confirmed** (see `docs/TESTING.md`) |
 | Cloud sync / backup | M4 | To be decided with you (iCloud vs. Supabase); nothing is committed yet |
 

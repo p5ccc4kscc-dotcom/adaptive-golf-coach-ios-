@@ -28,6 +28,7 @@ const OWNER_TABLES = [
   'equipment_photo',
   'swing_video',
   'pose_analysis',
+  'pose_phase_mark',
   'pose_frame_data',
 ] as const;
 
@@ -77,6 +78,7 @@ export function createRepositories(ctx: RepoContext) {
         'equipment_photo',
         'swing_video',
         'pose_analysis',
+        'pose_phase_mark',
         'pose_frame_data',
       ];
       for (const t of byOwner) tables[t] = await ctx.db.all(`SELECT * FROM ${t} WHERE owner_id = ?`, [ownerId]);
@@ -101,7 +103,7 @@ export function createRepositories(ctx: RepoContext) {
         await tx.run('DELETE FROM club_bag_membership WHERE preset_id IN (SELECT id FROM club_bag_preset WHERE owner_id = ?)', [ownerId]);
         await tx.run('DELETE FROM club_instance_revision WHERE club_instance_id IN (SELECT id FROM club_instance WHERE owner_id = ?)', [ownerId]);
         await tx.run('DELETE FROM baseline_round_hole WHERE baseline_round_id IN (SELECT id FROM baseline_round WHERE owner_id = ?)', [ownerId]);
-        for (const t of ['pose_frame_data', 'pose_analysis', 'swing_video', 'equipment_photo', 'baseline_range_outcome', 'golf_coach_note', 'player_skill_baseline', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
+        for (const t of ['pose_frame_data', 'pose_phase_mark', 'pose_analysis', 'swing_video', 'equipment_photo', 'baseline_range_outcome', 'golf_coach_note', 'player_skill_baseline', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
           await tx.run(`DELETE FROM ${t} WHERE owner_id = ?`, [ownerId]);
         }
       });

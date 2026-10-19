@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, LayoutChangeEvent, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 
-import { JOINTS, JOINT_INDEX, SKELETON } from '@/domain/pose/joints';
+import { JOINTS, JOINT_INDEX, JOINT_LABELS, SKELETON } from '@/domain/pose/joints';
 import { PHASES, PHASE_LABELS, PhaseResult } from '@/domain/pose/phases';
 import { PoseFrame } from '@/domain/pose/types';
 import { frameImage } from '@/services/swingAnalysis';
@@ -37,24 +37,27 @@ export function PoseFrameViewer({
   const t = useTheme();
   const { height: screenH } = useWindowDimensions();
   const [boxW, setBoxW] = useState(0);
-  const [shown, setShown] = useState<{ index: number; uri: string } | null>(null);
+  // The image on screen, identified by its exact timestamp. The overlay is drawn only for the
+  // analysed frame with that same timestamp, so landmarks can never sit on a different frame.
+  const [shown, setShown] = useState<{ t: number; uri: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const cache = useRef(new Map<number, string>());
+  const cache = useRef(new Map<string, string>());
 
   useEffect(() => {
     const frame = frames[index];
     if (!frame) return;
     let cancelled = false;
-    const cached = cache.current.get(index);
+    const key = `${fileUri}@${frame.t}`;
+    const cached = cache.current.get(key);
     if (cached) {
-      setShown({ index, uri: cached });
+      setShown({ t: frame.t, uri: cached });
       return;
     }
     frameImage(fileUri, frame.t)
       .then((img) => {
-        cache.current.set(index, img.uri);
+        cache.current.set(key, img.uri);
         if (!cancelled) {
-          setShown({ index, uri: img.uri });
+          setShown({ t: frame.t, uri: img.uri });
           setError(null);
         }
       })
@@ -68,21 +71,23 @@ export function PoseFrameViewer({
   const maxH = screenH * maxHeightRatio;
   const h = boxW > 0 ? Math.min(boxW / aspect, maxH) : 0;
   const w = h * aspect;
-  const shownFrame = shown ? frames[shown.index] : undefined;
+  const shownIndex = shown ? frames.findIndex((f) => f.t === shown.t) : -1;
+  const shownFrame = shownIndex >= 0 ? frames[shownIndex] : undefined;
 
   return (
     <Stack gap={space.sm} testID={testID}>
       <View onLayout={(e: LayoutChangeEvent) => setBoxW(e.nativeEvent.layout.width)} style={{ width: '100%', alignItems: 'center' }}>
         <View style={{ width: w, height: h, backgroundColor: '#000', borderRadius: radius.sm, overflow: 'hidden' }} accessible accessibilityLabel={shownFrame ? `Frame at ${shownFrame.t.toFixed(3)} seconds with detected joints` : 'Loading frame'}>
-          {shown ? <Image source={{ uri: shown.uri }} style={{ width: w, height: h }} resizeMode="stretch" /> : null}
+          {shown && shownFrame ? <Image source={{ uri: shown.uri }} style={{ width: w, height: h }} resizeMode="stretch" /> : null}
           {shownFrame ? <Overlay frame={shownFrame} w={w} h={h} /> : null}
         </View>
       </View>
       <AppText variant="caption" muted>
         {shownFrame
-          ? `Frame ${shown!.index + 1} of ${frames.length} · ${shownFrame.t.toFixed(3)} s · ${shownFrame.bodies === 0 ? 'no person detected' : shownFrame.bodies === 1 ? '1 person' : `${shownFrame.bodies} people (largest shown)`}${shown!.index !== index ? ' · loading…' : ''}`
+          ? `Frame ${shownIndex + 1} of ${frames.length} · ${shownFrame.t.toFixed(3)} s · ${shownFrame.bodies === 0 ? 'no person detected' : shownFrame.bodies === 1 ? '1 person' : `${shownFrame.bodies} people (largest shown)`}${shownIndex !== index ? ' · loading…' : ''}`
           : error ?? 'Loading frame…'}
       </AppText>
+      {shownFrame && shownFrame.bodies > 0 ? <MissingJoints frame={shownFrame} /> : null}
       <Scrubber count={frames.length} index={index} onChange={onIndexChange} />
       <Row gap={space.sm}>
         <Button compact variant="secondary" label="◀ Frame" accessibilityLabel="Previous frame" disabled={index <= 0} onPress={() => onIndexChange(index - 1)} style={{ flex: 1 }} testID="frame-prev" />
@@ -102,6 +107,19 @@ export function PoseFrameViewer({
       </AppText>
       <View style={{ height: 1, backgroundColor: t.border }} />
     </Stack>
+  );
+}
+
+const KEY_JOINTS = ['nose', 'neck', 'leftShoulder', 'rightShoulder', 'leftElbow', 'rightElbow', 'leftWrist', 'rightWrist', 'root', 'leftHip', 'rightHip', 'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle'] as const;
+
+/** Names the key joints not detected in this frame, so gaps are visible rather than hidden. */
+function MissingJoints({ frame }: { frame: PoseFrame }) {
+  const missing = KEY_JOINTS.filter((j) => !frame.joints[JOINT_INDEX[j]]);
+  if (missing.length === 0) return null;
+  return (
+    <AppText variant="caption" testID="missing-joints">
+      Not detected in this frame: {missing.map((j) => JOINT_LABELS[j].toLowerCase()).join(', ')}
+    </AppText>
   );
 }
 

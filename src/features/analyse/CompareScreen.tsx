@@ -4,11 +4,11 @@ import { View, useWindowDimensions } from 'react-native';
 import { compareAnalyses } from '@/domain/pose/compare';
 import { decodeFrames } from '@/domain/pose/decode';
 import { Measurement, computeMeasurements, formatMeasurement } from '@/domain/pose/measures';
-import { PHASES, PHASE_LABELS, PhaseName } from '@/domain/pose/phases';
+import { PHASES, PHASE_LABELS, PhaseName, applyPhaseMarks } from '@/domain/pose/phases';
 import { CAMERA_VIEW_LABELS, PoseFrame } from '@/domain/pose/types';
 import { PoseAnalysisRecord, SwingVideo } from '@/data/repositories/swingRepository';
 import { useQuery } from '@/services/AppServices';
-import { swingAnalysisAvailability } from '@/services/swingAnalysis';
+import { swingAnalysisAvailability, videoUri } from '@/services/swingAnalysis';
 import { AppText, Card, ChoiceChips, Row, Screen, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
@@ -42,7 +42,8 @@ function CompareDetail() {
       const stored = await s.repos.poseAnalyses.frames(analysis.id);
       if (!stored) continue;
       const frames = decodeFrames(stored.frames);
-      out.push({ video, analysis, frames, measures: computeMeasurements(frames, video.meta, analysis.phases, { hand: video.playingHand, view: video.cameraView }) });
+      const phases = applyPhaseMarks(analysis.phases, await s.repos.poseAnalyses.phaseMarks(analysis.id), frames);
+      out.push({ video, analysis: { ...analysis, phases }, frames, measures: computeMeasurements(frames, video.meta, phases, { hand: video.playingHand, view: video.cameraView }) });
     }
     return out;
   }).data;
@@ -81,11 +82,11 @@ function CompareDetail() {
           {aligned && a && b ? (
             <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
               <View style={{ gap: space.xs }}>
-                <PoseFrameStill fileUri={a.video.fileUri} frame={a.frames[aligned.a]!} size={a.video.meta} width={colW} testID="compare-frame-a" />
+                <PoseFrameStill fileUri={videoUri(a.video.relativePath)} frame={a.frames[aligned.a]!} size={a.video.meta} width={colW} testID="compare-frame-a" />
                 <AppText variant="caption">A · {a.frames[aligned.a]!.t.toFixed(2)} s</AppText>
               </View>
               <View style={{ gap: space.xs }}>
-                <PoseFrameStill fileUri={b.video.fileUri} frame={b.frames[aligned.b]!} size={b.video.meta} width={colW} testID="compare-frame-b" />
+                <PoseFrameStill fileUri={videoUri(b.video.relativePath)} frame={b.frames[aligned.b]!} size={b.video.meta} width={colW} testID="compare-frame-b" />
                 <AppText variant="caption">B · {b.frames[aligned.b]!.t.toFixed(2)} s</AppText>
               </View>
             </Row>

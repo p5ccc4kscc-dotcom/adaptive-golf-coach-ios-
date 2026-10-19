@@ -1,6 +1,6 @@
 # Implementation status — BadGolfer
 
-_Last updated: 2026-10-19 (M0 accepted; M0.1 branding and interface refinements in review)._
+_Last updated: 2026-10-19 (M0 accepted; M0.1 in review; M1a prototype in review on its own branch)._
 
 Product name: **BadGolfer** (formerly the working name “Adaptive Golf Coach”; see [`docs/BRAND.md`](docs/BRAND.md)).
 Legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED EXTERNALLY**
@@ -15,7 +15,7 @@ Authoritative spec: [`docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md`](
 | **M0 browser functionality** | **User-tested and accepted** (Safari on the owner's iPhone, 2026-10-19) | Owner's manual test, see “M0 formal acceptance” below; automated browser tests in Chromium |
 | **Native iOS app** | **Not validated.** No native binary has been built or installed. | Only the iOS JavaScript bundle has been compiled (`expo export --platform ios`). Passing browser tests does **not** show that the native app works. |
 | **Cloud synchronisation / backup** | **Not implemented** (planned, M4) | Settings shows “Local only · Nothing is backed up or synced” |
-| **Video swing analysis** | **Not implemented** (M1a in progress on a separate branch) | Analyse tab shows “Not available yet” |
+| **Video swing analysis** | **M1a prototype built; NOT validated on an iPhone** | Compiles into the iOS app and passes real Apple Vision tests on macOS (CI). The browser preview cannot run it and says so. No device build exists yet (needs the Apple Developer Program). |
 
 ## M0 formal acceptance (2026-10-19)
 
@@ -41,13 +41,42 @@ sync or swing analysis (see the table above).
 | **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **ACCEPTED** (browser preview) / native iOS **not validated** | Accepted by the owner on 2026-10-19 after testing in Safari on iPhone. No native iOS binary has been built yet. |
 | Browser preview (GitHub Pages) | **DONE (live)** | https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/ — first deployed on the PR #1 merge (run 39327682405) and used by the owner for the M0 test. |
 | **M0.1** BadGolfer branding and interface refinements | **IN REVIEW** (branch `claude/m0.1-badgolfer`) | See “M0.1” below. Not merged until the owner approves. |
-| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN PROGRESS** (separate branch and PR) | Authorised on 2026-10-19. Installing on the iPhone needs the Apple Developer Program, and validation needs the owner's swing clips. |
+| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN REVIEW** (branch `claude/m1a-swing-analyser`, stacked on M0.1) / **device validation BLOCKED EXTERNALLY** | See “M1a” below and `docs/M1A_SWING_ANALYSER.md`. Owner: approve the Apple Developer Program cost and the bundle identifier, then provide swing clips. |
 | **M1b** Remaining analyser features | NOT STARTED | Not to start until the owner accepts M1a. |
 | **M2** Curriculum, competency and refresher engine | NOT STARTED | The `player_skill_baseline` model and repository exist (supersede-only); the Learn tab shows “Not available yet”. |
 | **M3** Rounds, practice logging, trends, import | NOT STARTED | M0 stores self-reported baseline rounds (totals or hole-by-hole putts) and range sessions. JSON export is done; import is not. |
 | **M4** Accounts / sync / video backup | NOT STARTED | `SyncProvider` states exist (local only). The provider decision (iCloud vs. Supabase) is needed from the owner. |
 | **M5** Live camera, club tracking | NOT STARTED | — |
 | **M6** Product readiness | NOT STARTED | `docs/RELEASE_CHECKLIST.md` |
+
+## M1a — swing analyser technical prototype (in review)
+
+Full description, architecture and evidence: [`docs/M1A_SWING_ANALYSER.md`](docs/M1A_SWING_ANALYSER.md).
+
+| # | Requirement (owner brief §5) | Status | Evidence / limitation |
+|---|---|---|---|
+| 1 | Import from Photos | **Built, untested on device** | `expo-image-picker` (passthrough, current representation), private copy |
+| 2 | Real metadata (duration, orientation, frames) | ✅ macOS + Simulator | `VideoProbe` tests; frame count labelled as an estimate |
+| 3 | Frames with accurate timestamps | ✅ macOS | AVAssetReader; 240 fps clip, timestamps within 1 µs |
+| 4 | Genuine Apple Vision body pose | ✅ macOS / ⛔ Simulator (unsupported by Apple) / ❓ iPhone | Real photograph detected at all four rotations |
+| 5 | Joint coordinates + confidence | ✅ | 19 joints, x/y/confidence; missing stays missing |
+| 6 | Joints over the corresponding frames | **Built, untested on device** | Exact-time frame extraction (✅ macOS) + overlay drawn only over the frame it belongs to |
+| 7 | Scrubbing, frame by frame | **Built, untested on device** | 44 pt scrub bar, ◀/▶ frame, phase jumps |
+| 8 | Video-quality and confidence checks | ✅ unit-tested | Engineering thresholds, not validated |
+| 9 | Candidate phases with uncertainty | ✅ unit-tested on synthetic data | ± stated; golfer can mark frames; accuracy on real swings unknown |
+| 10 | Face-on and down the line | ✅ | View required before analysis; view-specific measures and wording |
+| 11 | Left- and right-handed | ✅ | Hand per video; lead side and target direction from the hand, never guessed |
+| 12 | Compare two recordings | **Built, untested on device** | Timing across views; 2D only within the same view; uncertainty-aware |
+| 13 | Preserve footage and metadata | ✅ data tests | Photos original untouched; every run kept; archive, not delete |
+| 14 | Cancellation, errors, poor files | ✅ macOS | Coded errors; cancel; frame cap; “unusable” shows no results |
+| — | Native module integrates with Expo SDK 57 | ✅ autolinked and pod-installed in CI · ⏳ full `xcodebuild` result pending | `expo prebuild` + `pod install` + `xcodebuild` (Simulator, unsigned) |
+| — | EAS build for a device | ⏸ **Blocked** | Needs the Apple Developer Program (cost to approve) and the bundle identifier |
+| — | Portrait, landscape and high frame rate | ✅ synthetic clips on macOS / ❓ real iPhone clips | 0/90/180/270° rotations and 240 fps tested |
+
+**Measurement integrity:**
+- Clubface, path, face-to-path, speeds, spin, launch, carry and strike are never computed.
+- Every value is labelled detected 2D, calculated 2D, estimated or manual.
+- No fault labels exist, and observations are marked not eligible as mastery evidence.
 
 ## M0.1 — BadGolfer branding and interface refinements (in review)
 
@@ -118,7 +147,7 @@ Each entry gives its status: **Fixed** (done in this update), **Approved overrid
 | Spec | Milestone |
 |---|---|
 | §2.3 club photo uploaded by the golfer (table exists) | M1 (media import) |
-| §2.1 step 7 swing videos in baseline | M1 |
+| §2.1 step 7 swing videos in baseline | M1b (videos can be imported in Analyse; not yet linked to the baseline step) |
 | §2.4 round snapshots of the bag; club picking in video/round screens | M1 / M3 (bag membership history is already stored) |
 | §2.1 step 8 drill steps and outcome logging for the starter session (the outline is real and bag-aware) | M2 |
 | §3 Today: drill, next challenge, strengths, refresher flags | M2 |

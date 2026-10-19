@@ -46,7 +46,7 @@ describe('schema v3 upgrade keeps existing data (fictional)', () => {
 describe('swing videos and analyses (fictional metadata, synthetic frames)', () => {
   it('stores a video with unknowns left null, keeps every analysis run, and survives relaunch', async () => {
     const app = await openTestApp();
-    const videoId = await app.repos.swingVideos.add(app.ownerId, { fileUri: 'file:///docs/swing-videos/a.mov', originalFileName: 'IMG_0001.MOV', meta: META, cameraView: null, playingHand: null, clubInstanceId: null, recordedOn: null });
+    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/a.mov', originalFileName: 'IMG_0001.MOV', meta: META, cameraView: null, playingHand: null, clubInstanceId: null, recordedOn: null });
     const v = (await app.repos.swingVideos.get(videoId))!;
     expect(v.cameraView).toBeNull();
     expect(v.playingHand).toBeNull();
@@ -85,7 +85,7 @@ describe('swing videos and analyses (fictional metadata, synthetic frames)', () 
   it('a club linked to a video is archived, not deleted; archiving a video keeps its analyses', async () => {
     const app = await openTestApp();
     const clubId = (await app.repos.clubs.create(app.ownerId, clubFields('driver'))).id;
-    const videoId = await app.repos.swingVideos.add(app.ownerId, { fileUri: 'file:///x.mov', originalFileName: null, meta: META, cameraView: 'dtl', playingHand: 'left', clubInstanceId: clubId, recordedOn: null });
+    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: 'dtl', playingHand: 'left', clubInstanceId: clubId, recordedOn: null });
     expect(await app.repos.clubs.deleteOrArchive(clubId)).toBe('archived');
     await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: videoId, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'failed', errorCode: 'ERR_VISION_FAILED', errorMessage: 'x' });
     await app.repos.swingVideos.archive(videoId);
@@ -95,7 +95,7 @@ describe('swing videos and analyses (fictional metadata, synthetic frames)', () 
 
   it('export includes swing data; Delete all my data removes it', async () => {
     const app = await openTestApp();
-    const videoId = await app.repos.swingVideos.add(app.ownerId, { fileUri: 'file:///x.mov', originalFileName: null, meta: META, cameraView: 'fo', playingHand: 'right', clubInstanceId: null, recordedOn: null });
+    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: 'fo', playingHand: 'right', clubInstanceId: null, recordedOn: null });
     await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: videoId, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'completed', rawFrames: syntheticSwing({ fps: 30 }).frames, jointOrder: [] });
     const exported = (await app.repos.exportAll(app.ownerId)) as { formatVersion: number; tables: Record<string, unknown[]> };
     expect(exported.formatVersion).toBe(3);
@@ -104,5 +104,31 @@ describe('swing videos and analyses (fictional metadata, synthetic frames)', () 
     expect(exported.tables.pose_frame_data).toHaveLength(1);
     await app.repos.deleteAllData(app.ownerId);
     expect(await app.repos.countOwnerRows(app.ownerId)).toBe(0);
+  });
+});
+
+describe('golfer phase marks (append-only)', () => {
+  it('a new mark supersedes the old one; clearing returns to the automatic candidate; history is kept', async () => {
+    const app = await openTestApp();
+    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: 'fo', playingHand: 'right', clubInstanceId: null, recordedOn: null });
+    const id = await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: videoId, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'completed', rawFrames: syntheticSwing({ fps: 30 }).frames, jointOrder: [] });
+    await app.repos.poseAnalyses.markPhase(app.ownerId, id, { phase: 'top', frame: 40, t: 1.333 });
+    await app.repos.poseAnalyses.markPhase(app.ownerId, id, { phase: 'top', frame: 42, t: 1.4 });
+    expect(await app.repos.poseAnalyses.phaseMarks(id)).toEqual([{ phase: 'top', frame: 42, t: 1.4 }]);
+    await app.repos.poseAnalyses.clearPhaseMark(id, 'top');
+    expect(await app.repos.poseAnalyses.phaseMarks(id)).toEqual([]);
+    const all = await app.db.all<{ n: number }>('SELECT COUNT(*) AS n FROM pose_phase_mark WHERE pose_analysis_id = ?', [id]);
+    expect(Number(all[0]!.n)).toBe(2);
+  });
+
+  it('stores the club choice, including an explicit "unknown", and the shot type', async () => {
+    const app = await openTestApp();
+    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: null, playingHand: null, clubInstanceId: null, recordedOn: null });
+    expect((await app.repos.swingVideos.get(videoId))!.clubChoice).toBeNull();
+    await app.repos.swingVideos.updateContext(videoId, { club: { kind: 'unknown', clubInstanceId: null }, shotType: 'full' });
+    const v = (await app.repos.swingVideos.get(videoId))!;
+    expect(v.clubChoice).toBe('unknown');
+    expect(v.clubInstanceId).toBeNull();
+    expect(v.shotType).toBe('full');
   });
 });

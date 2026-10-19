@@ -1,6 +1,6 @@
-# Measurement validity (applies from M1)
+# Measurement validity
 
-Nothing in M0 measures a swing. The rules below govern the analyser when it is built.
+These rules govern the analyser. What M1a implements is listed at the end.
 
 - **Tier A (pose, view-gated, may be reported with limitations):** projected head displacement
   relative to address (as a share of shoulder width); hip/knee projection; shoulder-line and
@@ -21,3 +21,27 @@ Nothing in M0 measures a swing. The rules below govern the analyser when it is b
 
 **Needed from the owner for M1 validation:** your own swing clips (face-on and down-the-line,
 ideally slow-motion and normal speed), with consent to use them for testing.
+
+## Implemented in M1a (prototype; thresholds unvalidated)
+
+| Measure | Basis | Scale / unit | Views | Notes |
+|---|---|---|---|---|
+| 19 body joints per frame | Detected 2D (Apple Vision) | normalised image coordinates + confidence | all | below 0.3 confidence = missing; nothing interpolated |
+| Swing-phase candidates (address, top, impact, finish) | Estimated | s ± (frame spacing; + 0.1 s address/finish) | all | from the hands' path; golfer can mark frames instead (“Marked by you”) |
+| Backswing and downswing time, tempo ratio | Estimated | s, ratio, with uncertainty | all | only when both phases exist |
+| Head movement address → top / impact | Calculated 2D | torso lengths (neck–hip centre) | all | straight-line movement in the picture; depth not seen |
+| Head movement towards the target | Calculated 2D | % of shoulder width at address | **face-on only**, hand required | target side taken from the detected lead/trail shoulders |
+| Trunk tilt from vertical at address / top / impact | Calculated 2D | degrees | all (wording differs: DTL ≈ forward bend, FO ≈ side bend) | not a 3D spine angle |
+| Lead-arm elbow angle at the top | Calculated 2D | degrees | all, hand required | foreshortening warning |
+| Tier C items | Unavailable | — | — | always listed as not measurable |
+
+Every value is labelled as an **observation**. `toObservations` marks them `reliability: unvalidated`
+and `eligibleAsMasteryEvidence: false`. No fault labels exist in M1a.
+
+**Validation still required (owner's consented clips):**
+- landmark placement checked frame by frame;
+- phase candidate error against frames you mark by hand;
+- the false-alarm and no-detection rate per view;
+- agreement between face-on and down-the-line clips of the same swing.
+
+Until that review is done, no threshold is tightened or used for coaching.

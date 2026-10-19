@@ -12,7 +12,7 @@ export interface Measurement {
   id: string;
   label: string;
   value: number | null;
-  unit: 'deg' | 'torso' | 's' | 'ratio';
+  unit: 'deg' | 'torso' | 'shoulder' | 's' | 'ratio';
   basis: MeasurementBasis;
   /** ± in the same unit, when it can be stated. */
   uncertainty: number | null;
@@ -91,6 +91,31 @@ export function computeMeasurements(
   };
   headShift('head_shift_top', 'Head movement, address → top', 'top');
   headShift('head_shift_impact', 'Head movement, address → impact', 'impact');
+
+  // Face-on only: head movement along the target line, as a share of shoulder width (spec §4.4 example).
+  const towardTarget = (id: string, label: string, to: PhaseName) => {
+    const base = { id, label, unit: 'shoulder' as const, basis: 'calculated_2d' as const, uncertainty: null };
+    if (context.view !== 'fo') return out.push({ ...base, value: null, note: 'Only measured from a face-on video.' });
+    if (!context.hand) return out.push({ ...base, value: null, note: 'Set your playing hand so the target side is known. It is never guessed.' });
+    const a = at(frames, phases, 'address');
+    const b = at(frames, phases, to);
+    const lead = leadSide(context.hand);
+    const ls = a && jointPx(a, sideJoint(lead, 'Shoulder'), size);
+    const ts = a && jointPx(a, sideJoint(lead === 'left' ? 'right' : 'left', 'Shoulder'), size);
+    const na = a && jointPx(a, 'nose', size);
+    const nb = b && jointPx(b, 'nose', size);
+    if (!ls || !ts || !na || !nb || Math.abs(ls.X - ts.X) < 1) return out.push({ ...base, value: null, note: 'Needs both shoulders at address and the nose at both positions.' });
+    // The target lies on the lead-shoulder side of the picture (taken from the detected shoulders, not assumed).
+    const towards = Math.sign(ls.X - ts.X);
+    const width = Math.abs(ls.X - ts.X);
+    return out.push({
+      ...base,
+      value: ((nb.X - na.X) * towards) / width,
+      note: 'Positive = towards the target. 2D, from the face-on picture; uses Vision’s left/right shoulder labels at address. This alone does not establish a swing fault.',
+    });
+  };
+  towardTarget('head_target_top', 'Head movement towards the target, address → top', 'top');
+  towardTarget('head_target_impact', 'Head movement towards the target, address → impact', 'impact');
 
   // Trunk tilt from vertical (neck → hip centre), image plane.
   for (const p of ['address', 'top', 'impact'] as const) {
@@ -179,5 +204,7 @@ export function formatMeasurement(m: Measurement): string {
       return `${Math.round(m.value)}°`;
     case 'torso':
       return `${m.value.toFixed(2)} torso lengths`;
+    case 'shoulder':
+      return `${m.value >= 0 ? '+' : ''}${Math.round(m.value * 100)}% of shoulder width`;
   }
 }

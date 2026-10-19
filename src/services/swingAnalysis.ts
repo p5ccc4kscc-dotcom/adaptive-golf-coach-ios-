@@ -4,10 +4,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
 import { Repositories } from '@/data/repositories';
-import { decodeFrames } from '@/domain/pose/decode';
+import { DEFAULT_MIN_CONFIDENCE, decodeFrames } from '@/domain/pose/decode';
 import { detectPhases } from '@/domain/pose/phases';
 import { assessPose } from '@/domain/pose/quality';
-import { CameraView, VideoMeta } from '@/domain/pose/types';
+import { SAMPLING, planSampling, swingWindow } from '@/domain/pose/sampling';
+import { VideoMeta } from '@/domain/pose/types';
 
 import { AnalysisProgressEvent, GolfVision, NativeVideoInfo } from '../../modules/golf-vision';
 
@@ -27,6 +28,11 @@ export function swingAnalysisAvailability(): Availability {
 }
 
 const VIDEO_DIR = 'swing-videos';
+
+/** The current absolute URI of a stored video (iOS moves the app container on updates). */
+export function videoUri(relativePath: string): string {
+  return new File(Paths.document, relativePath).uri;
+}
 
 function videoDirectory(): Directory {
   const dir = new Directory(Paths.document, VIDEO_DIR);
@@ -66,17 +72,20 @@ export async function importSwingVideo(
     allowsMultipleSelection: false,
     videoExportPreset: ImagePicker.VideoExportPreset.Passthrough,
     preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
+    // Lets the picker fetch a video that is stored only in the golfer's iCloud Photos.
+    shouldDownloadFromNetwork: true,
   });
   if (picked.canceled || !picked.assets?.[0]) return { ok: false, cancelled: true };
   const asset = picked.assets[0];
   try {
     const source = new File(asset.uri);
     const ext = (asset.fileName ?? asset.uri).split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'mov';
-    const dest = new File(videoDirectory(), `${context.newId()}.${ext}`);
+    const name = `${context.newId()}.${ext}`;
+    const dest = new File(videoDirectory(), name);
     await source.copy(dest);
     const info = await native.probeVideo(dest.uri);
     const videoId = await repos.swingVideos.add(ownerId, {
-      fileUri: dest.uri,
+      relativePath: `${VIDEO_DIR}/${name}`,
       originalFileName: asset.fileName ?? null,
       meta: toVideoMeta(info),
       cameraView: null,
@@ -90,41 +99,60 @@ export async function importSwingVideo(
   }
 }
 
-export interface AnalysisRunOptions {
-  /** null = every decoded frame. */
-  maxFramesPerSecond: number | null;
-  maxFrames: number;
-}
-
-export const DEFAULT_RUN: AnalysisRunOptions = { maxFramesPerSecond: null, maxFrames: 1800 };
-
 export type RunResult = { status: 'completed'; analysisId: string } | { status: 'cancelled'; analysisId: string } | { status: 'failed'; analysisId: string; message: string };
 
-/** Runs Apple Vision over the video. Every outcome, including failure and cancellation, is recorded. */
+export interface RunProgress {
+  pass: 1 | 2;
+  passes: 1 | 2;
+  analysed: number;
+  estimatedTotal: number;
+}
+
+/**
+ * Runs Apple Vision over the video (spec §4.1 sampling: one full pass for a
+ * short clip; a coarse pass then a full-rate pass over the swing window for a
+ * long or slow-motion clip). Every outcome, including failure and
+ * cancellation, is recorded.
+ */
 export async function runSwingAnalysis(
   repos: Repositories,
   ownerId: string,
-  video: { id: string; fileUri: string; meta: VideoMeta },
+  video: { id: string; relativePath: string; meta: VideoMeta },
   jobId: string,
-  onProgress: (e: AnalysisProgressEvent) => void,
-  options: AnalysisRunOptions = DEFAULT_RUN,
+  onProgress: (p: RunProgress) => void,
 ): Promise<RunResult> {
   const native = GolfVision;
   if (!native) throw new Error('The analyser is not part of this build.');
+  const plan = planSampling(video.meta);
+  const params: Record<string, unknown> = { plan: plan.passes, minConfidence: DEFAULT_MIN_CONFIDENCE, maxFrames: SAMPLING.maxFrames };
   const base = {
     swingVideoId: video.id,
     engine: native.engine.name,
     engineVersion: `vision-rev-${native.engine.visionRevision}`,
     appVersion: Constants.expoConfig?.version ?? null,
-    params: { ...options, minConfidence: 0.3 } as Record<string, unknown>,
+    params,
   };
-  const sub = native.addListener('onAnalysisProgress', (e) => {
-    if (e.jobId === jobId) onProgress(e);
+  const uri = videoUri(video.relativePath);
+  let pass: 1 | 2 = 1;
+  const sub = native.addListener('onAnalysisProgress', (e: AnalysisProgressEvent) => {
+    if (e.jobId === jobId) onProgress({ pass, passes: plan.passes, analysed: e.analysed, estimatedTotal: e.estimatedTotal });
   });
   try {
-    const result = await native.analyzePose(jobId, video.fileUri, { maxFramesPerSecond: options.maxFramesPerSecond, maxFrames: options.maxFrames });
-    const frames = decodeFrames(result.frames);
+    let result = await native.analyzePose(jobId, uri, plan.passes === 1 ? { maxFrames: SAMPLING.maxFrames } : { maxFramesPerSecond: SAMPLING.coarseFps, maxFrames: SAMPLING.maxFrames });
     const size = { displayWidth: result.video.displayWidth, displayHeight: result.video.displayHeight };
+    if (plan.passes === 2) {
+      const window = swingWindow(detectPhases(decodeFrames(result.frames), size), result.video.durationSeconds);
+      params.coarseFps = SAMPLING.coarseFps;
+      if (window) {
+        pass = 2;
+        params.window = window;
+        result = await native.analyzePose(jobId, uri, { maxFrames: SAMPLING.maxFrames, ...window });
+      } else {
+        params.window = null;
+        params.note = 'The coarse pass found no swing, so only the coarse frames were kept.';
+      }
+    }
+    const frames = decodeFrames(result.frames);
     const analysisId = await repos.poseAnalyses.add(ownerId, {
       ...base,
       engineVersion: `vision-rev-${result.visionRevision}`,
@@ -165,10 +193,6 @@ export function deleteSwingVideoFiles() {
   if (Platform.OS === 'web') return;
   const dir = new Directory(Paths.document, VIDEO_DIR);
   if (dir.exists) dir.delete();
-}
-
-export function setVideoView(repos: Repositories, videoId: string, view: CameraView | null) {
-  return repos.swingVideos.updateContext(videoId, { cameraView: view });
 }
 
 function errorCode(e: unknown): string {

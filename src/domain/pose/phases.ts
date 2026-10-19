@@ -25,7 +25,28 @@ export interface PhaseCandidate {
   t: number;
   /** ± seconds: the spacing of analysed frames (more across tracking gaps), plus a method margin for address and finish. */
   uncertaintySeconds: number;
-  confidence: 'low' | 'medium';
+  /** 'manual' = marked by the golfer on this frame; automatic candidates are never 'high'. */
+  confidence: 'low' | 'medium' | 'manual';
+}
+
+/** A phase the golfer set by hand on a specific analysed frame. */
+export interface PhaseMark {
+  phase: PhaseName;
+  frame: number;
+  t: number;
+}
+
+/**
+ * Golfer marks replace the automatic candidates for those phases. The
+ * uncertainty of a mark is one frame spacing (the golfer picked a frame).
+ */
+export function applyPhaseMarks(result: PhaseResult, marks: readonly PhaseMark[], frames: readonly { t: number }[]): PhaseResult {
+  if (marks.length === 0) return result;
+  const spacing = frames.length > 1 ? (frames[frames.length - 1]!.t - frames[0]!.t) / (frames.length - 1) : 0;
+  const candidates = { ...result.candidates };
+  for (const m of marks) candidates[m.phase] = { phase: m.phase, frame: m.frame, t: m.t, uncertaintySeconds: spacing, confidence: 'manual' };
+  const marked = new Set(marks.map((m) => m.phase));
+  return { candidates, unavailable: result.unavailable.filter((u) => !marked.has(u.phase)), notes: result.notes };
 }
 
 export interface PhaseResult {

@@ -260,11 +260,12 @@ CREATE TABLE player_skill_baseline (
     sql: `
 -- A swing video the golfer imported. The file is a private copy inside the app's documents
 -- folder; the original in Photos is never changed. Metadata is read from the file itself.
--- Unknown camera view, hand or club stay NULL.
+-- Unknown camera view, hand or club stay NULL. relative_path is relative to the documents
+-- folder, because iOS changes the absolute container path when the app is updated.
 CREATE TABLE swing_video (
   id TEXT PRIMARY KEY NOT NULL,
   owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
-  file_uri TEXT NOT NULL,
+  relative_path TEXT NOT NULL,
   original_file_name TEXT,
   source TEXT NOT NULL CHECK (source IN ('photos_import')),
   imported_at TEXT NOT NULL,
@@ -279,7 +280,10 @@ CREATE TABLE swing_video (
   file_size_bytes INTEGER,
   camera_view TEXT CHECK (camera_view IS NULL OR camera_view IN ('fo','dtl','other')),
   playing_hand TEXT CHECK (playing_hand IS NULL OR playing_hand IN ('right','left')),
+  -- NULL = not chosen yet; 'unknown' = the golfer chose "Unknown / not entered".
+  club_choice TEXT CHECK (club_choice IS NULL OR club_choice IN ('bag','other_owned','unknown')),
   club_instance_id TEXT REFERENCES club_instance(id),
+  shot_type TEXT CHECK (shot_type IS NULL OR shot_type IN ('full','three_quarter','pitch','chip','putt','drill','other')),
   notes TEXT,
   archived_at TEXT
 );
@@ -306,6 +310,20 @@ CREATE TABLE pose_analysis (
   phases_json TEXT
 );
 CREATE INDEX idx_pose_analysis_video ON pose_analysis (swing_video_id, created_at);
+
+-- Phases the golfer marked by hand on an analysis. Append-only: a new mark supersedes the
+-- previous one for that phase; nothing is overwritten.
+CREATE TABLE pose_phase_mark (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  pose_analysis_id TEXT NOT NULL REFERENCES pose_analysis(id) ON DELETE CASCADE,
+  phase TEXT NOT NULL CHECK (phase IN ('address','top','impact','finish')),
+  frame_index INTEGER NOT NULL,
+  time_s REAL NOT NULL,
+  created_at TEXT NOT NULL,
+  superseded_at TEXT
+);
+CREATE INDEX idx_phase_mark_analysis ON pose_phase_mark (pose_analysis_id);
 
 -- Detected landmarks for a completed analysis, exactly as returned by Apple Vision (rounded to
 -- 4 decimals). Kept separate so lists stay fast.

@@ -4,11 +4,12 @@ import { useMemo, useRef, useState } from 'react';
 import { ClubChoice } from '@/domain/baseline';
 import { decodeFrames } from '@/domain/pose/decode';
 import { NOT_MEASURABLE, NOT_MEASURABLE_REASON, computeMeasurements, formatMeasurement } from '@/domain/pose/measures';
-import { PHASES, PHASE_LABELS } from '@/domain/pose/phases';
+import { PHASES, PHASE_LABELS, applyPhaseMarks } from '@/domain/pose/phases';
+import { planSampling } from '@/domain/pose/sampling';
 import { POSE_VERDICT_LABELS, assessVideo } from '@/domain/pose/quality';
-import { BASIS_LABELS, CAMERA_VIEW_LABELS, CameraView } from '@/domain/pose/types';
+import { BASIS_LABELS, CAMERA_VIEW_LABELS, CameraView, SHOT_TYPES, SHOT_TYPE_LABELS } from '@/domain/pose/types';
 import { useQuery, useServices } from '@/services/AppServices';
-import { cancelSwingAnalysis, runSwingAnalysis, swingAnalysisAvailability } from '@/services/swingAnalysis';
+import { cancelSwingAnalysis, runSwingAnalysis, swingAnalysisAvailability, videoUri } from '@/services/swingAnalysis';
 import { AppText, Badge, Button, Card, ChoiceChips, Dialog, Disclosure, ProgressBar, Row, Screen, Stack } from '@/ui/components';
 import { goBackOr } from '@/ui/navigation';
 import { space } from '@/ui/theme';
@@ -29,7 +30,7 @@ export function SwingVideoScreen({ videoId }: { videoId: string }) {
 function SwingVideoDetail({ videoId }: { videoId: string }) {
   const { repos, ownerId, invalidate } = useServices();
   const router = useRouter();
-  const [running, setRunning] = useState<{ jobId: string; analysed: number; total: number } | null>(null);
+  const [running, setRunning] = useState<{ jobId: string; pass: 1 | 2; passes: 1 | 2; analysed: number; total: number } | null>(null);
   const [runMessage, setRunMessage] = useState<string | null>(null);
   const [frameIndex, setFrameIndex] = useState(0);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -47,29 +48,34 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
         s.repos.bags.members(bag.id),
       ]);
       const stored = latest ? await s.repos.poseAnalyses.frames(latest.id) : null;
-      return { video, runs, latest, frames: stored ? decodeFrames(stored.frames) : null, owned, bagClubs };
+      const marks = latest ? await s.repos.poseAnalyses.phaseMarks(latest.id) : [];
+      const frames = stored ? decodeFrames(stored.frames) : null;
+      const phases = latest?.phases && frames ? applyPhaseMarks(latest.phases, marks, frames) : null;
+      return { video, runs, latest, frames, phases, marks, owned, bagClubs };
     },
     [videoId],
   ).data;
 
   const measures = useMemo(() => {
-    if (!data?.latest?.phases || !data.frames) return null;
-    return computeMeasurements(data.frames, data.video.meta, data.latest.phases, { hand: data.video.playingHand, view: data.video.cameraView });
+    if (!data?.phases || !data.frames) return null;
+    return computeMeasurements(data.frames, data.video.meta, data.phases, { hand: data.video.playingHand, view: data.video.cameraView });
   }, [data]);
 
   if (data === undefined) return <Screen testID="swing-video"><AppText muted>Loading…</AppText></Screen>;
   if (data === null) return <Screen testID="swing-video"><AppText>This video is no longer available.</AppText></Screen>;
-  const { video, runs, latest, frames } = data;
+  const { video, runs, latest, frames, phases } = data;
   const videoQuality = assessVideo(video.meta);
+  const missingContext = [video.clubChoice === null ? 'the club' : null, video.shotType === null ? 'the shot type' : null, video.cameraView === null ? 'the camera angle' : null].filter(Boolean);
+  const currentFrame = frames ? Math.min(frameIndex, frames.length - 1) : 0;
   const usable = latest?.quality && latest.quality.verdict !== 'unusable';
-  const clubChoice: ClubChoice | null = video.clubInstanceId ? { kind: data.bagClubs.some((c) => c.id === video.clubInstanceId) ? 'bag' : 'other_owned', clubInstanceId: video.clubInstanceId } : null;
+  const clubChoice: ClubChoice | null = video.clubChoice ? { kind: video.clubChoice, clubInstanceId: video.clubInstanceId } : null;
 
   const analyse = async () => {
     const jobId = newLocalId();
     jobRef.current = jobId;
     setRunMessage(null);
-    setRunning({ jobId, analysed: 0, total: Math.max(1, video.meta.estimatedFrameCount) });
-    const r = await runSwingAnalysis(repos, ownerId, video, jobId, (e) => setRunning({ jobId, analysed: e.analysed, total: e.estimatedTotal }));
+    setRunning({ jobId, pass: 1, passes: planSampling(video.meta).passes, analysed: 0, total: Math.max(1, video.meta.estimatedFrameCount) });
+    const r = await runSwingAnalysis(repos, ownerId, video, jobId, (e) => setRunning({ jobId, pass: e.pass, passes: e.passes, analysed: e.analysed, total: e.estimatedTotal }));
     setRunning(null);
     jobRef.current = null;
     setFrameIndex(0);
@@ -92,7 +98,7 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
 
       <Card>
         <Stack gap={space.sm}>
-          <ChoiceChips label="Camera angle" helper="Needed to read 2D angles correctly. Leave blank if unsure." options={VIEW_OPTIONS} value={video.cameraView} onChange={async (v: CameraView | null) => { await repos.swingVideos.updateContext(video.id, { cameraView: v }); invalidate(); }} testIDPrefix="view" />
+          <ChoiceChips label="Camera angle" helper="Needed to read 2D angles correctly. Choose “Other angle” if it was neither." options={VIEW_OPTIONS} value={video.cameraView} onChange={async (v: CameraView | null) => { await repos.swingVideos.updateContext(video.id, { cameraView: v }); invalidate(); }} testIDPrefix="view" />
           <ChoiceChips
             label="Playing hand for this swing"
             helper={video.playingHand ? undefined : 'Not set: the lead arm is not identified and nothing is guessed.'}
@@ -101,12 +107,13 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
             onChange={async (v) => { await repos.swingVideos.updateContext(video.id, { playingHand: v }); invalidate(); }}
             testIDPrefix="video-hand"
           />
+          <ChoiceChips label="Intended shot" options={SHOT_TYPES.map((v) => ({ value: v, label: SHOT_TYPE_LABELS[v] }))} value={video.shotType} onChange={async (v) => { await repos.swingVideos.updateContext(video.id, { shotType: v }); invalidate(); }} testIDPrefix="shot" />
           <ClubPicker
-            label="Club used (optional)"
+            label="Club used"
             bag={data.bagClubs}
             owned={data.owned}
             value={clubChoice}
-            onChange={async (c) => { await repos.swingVideos.updateContext(video.id, { clubInstanceId: c && c.kind !== 'unknown' ? c.clubInstanceId : null }); invalidate(); }}
+            onChange={async (c) => { await repos.swingVideos.updateContext(video.id, { club: c }); invalidate(); }}
             testIDPrefix="video-club"
           />
         </Stack>
@@ -115,7 +122,7 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
       {running ? (
         <Card tone="info" testID="analysis-running">
           <Stack gap={space.sm}>
-            <AppText variant="subheading">Analysing on this iPhone…</AppText>
+            <AppText variant="subheading">Analysing on this iPhone…{running.passes === 2 ? ` (pass ${running.pass} of 2: ${running.pass === 1 ? 'finding the swing' : 'full detail'})` : ''}</AppText>
             <ProgressBar value={running.analysed} max={running.total} label={`Analysed ${running.analysed} of about ${running.total} frames`} />
             <AppText variant="caption">{running.analysed} of about {running.total} frames</AppText>
             <Button variant="secondary" label="Cancel" onPress={() => {
@@ -124,7 +131,10 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
           </Stack>
         </Card>
       ) : (
-        <Button label={latest ? 'Analyse again' : 'Analyse on this iPhone'} disabled={!videoQuality.ok} onPress={analyse} testID="run-analysis" accessibilityHint="Runs Apple Vision body tracking on every frame. Earlier results are kept." />
+        <Stack gap={space.xs}>
+          <Button label={latest ? 'Analyse again' : 'Analyse on this iPhone'} disabled={!videoQuality.ok || missingContext.length > 0} onPress={analyse} testID="run-analysis" accessibilityHint="Runs Apple Vision body tracking. Earlier results are kept." />
+          {missingContext.length > 0 ? <AppText variant="caption" muted>Choose {missingContext.join(', ')} first (“Unknown” and “Other” are fine).</AppText> : <AppText variant="caption" muted>{planSampling(video.meta).reason}</AppText>}
+        </Stack>
       )}
       {runMessage ? <AppText variant="caption" testID="analysis-message">{runMessage}</AppText> : null}
 
@@ -142,28 +152,47 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
         </Card>
       ) : null}
 
-      {usable && frames && frames.length > 0 ? (
-        <PoseFrameViewer fileUri={video.fileUri} frames={frames} size={video.meta} phases={latest!.phases} index={Math.min(frameIndex, frames.length - 1)} onIndexChange={setFrameIndex} testID="pose-viewer" />
+      {frames && frames.length > 0 ? (
+        <>
+          <PoseFrameViewer fileUri={videoUri(video.relativePath)} frames={frames} size={video.meta} phases={usable ? phases : null} index={currentFrame} onIndexChange={setFrameIndex} testID="pose-viewer" />
+          {usable ? (
+          <ChoiceChips
+            label="Mark this frame as…"
+            helper="Your marks replace the automatic candidates and are kept in your history."
+            options={PHASES.map((p) => ({ value: p, label: PHASE_LABELS[p] }))}
+            value={PHASES.find((p) => data.marks.some((m) => m.phase === p && m.frame === currentFrame)) ?? null}
+            onChange={async (p) => {
+              if (!p) return;
+              await repos.poseAnalyses.markPhase(ownerId, latest!.id, { phase: p, frame: currentFrame, t: frames[currentFrame]!.t });
+              invalidate();
+            }}
+            testIDPrefix="mark"
+          />
+          ) : (
+            <AppText variant="caption">Frames are shown so you can see what went wrong; no phases or measurements are given for this run.</AppText>
+          )}
+        </>
       ) : null}
 
-      {usable && latest?.phases ? (
+      {usable && phases ? (
         <Card testID="phases">
           <Stack gap={space.xs}>
             <AppText variant="subheading">Swing-phase candidates</AppText>
-            <AppText variant="caption" muted>Estimated from the hands’ path. Check each against the frame before relying on it.</AppText>
+            <AppText variant="caption" muted>Estimated from the hands’ path unless you marked them. Check each against the frame before relying on it.</AppText>
             {PHASES.map((p) => {
-              const c = latest.phases!.candidates[p];
-              const u = latest.phases!.unavailable.find((x) => x.phase === p);
+              const c = phases.candidates[p];
+              const u = phases.unavailable.find((x) => x.phase === p);
               return (
                 <Row key={p} wrap gap={space.sm}>
                   <AppText variant="label">{PHASE_LABELS[p]}</AppText>
                   {c ? <AppText>{c.t.toFixed(2)} s ± {c.uncertaintySeconds.toFixed(2)}</AppText> : <AppText muted>Not found</AppText>}
-                  {c ? <Badge label={`${c.confidence} confidence`} tone={c.confidence === 'medium' ? 'info' : 'warning'} /> : null}
+                  {c ? <Badge label={c.confidence === 'manual' ? 'Marked by you' : `${c.confidence} confidence`} tone={c.confidence === 'manual' ? 'primary' : c.confidence === 'medium' ? 'info' : 'warning'} /> : null}
+                  {c?.confidence === 'manual' ? <Button compact variant="ghost" label="Use automatic" accessibilityLabel={`Use the automatic ${PHASE_LABELS[p]} candidate`} onPress={async () => { await repos.poseAnalyses.clearPhaseMark(latest!.id, p); invalidate(); }} /> : null}
                   {u ? <AppText variant="caption" muted>{u.reason}</AppText> : null}
                 </Row>
               );
             })}
-            {latest.phases.notes.map((n) => (
+            {phases.notes.map((n) => (
               <AppText key={n} variant="caption">ℹ︎ {n}</AppText>
             ))}
           </Stack>

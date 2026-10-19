@@ -41,7 +41,15 @@
       "expo-router",
       "expo-status-bar",
       "expo-sqlite",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BadGolfer opens the swing videos you choose so it can analyse them on this iPhone. Nothing is uploaded.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

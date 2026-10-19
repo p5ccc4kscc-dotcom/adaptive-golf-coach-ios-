@@ -10,6 +10,7 @@ import { localOnlySyncProvider, SYNC_STATUS_LABELS } from '@/domain/sync';
 import { AppText, Badge, Button, Card, ChoiceChips, Dialog, DialogAction, Loading, NotAvailable, Row, Screen, SectionHeader, Stack } from '@/ui/components';
 import { FeatureStatusList } from '@/ui/FeatureStatusList';
 import { space } from '@/ui/theme';
+import { deleteSwingVideoFiles } from '@/services/swingAnalysis';
 
 export function SettingsScreen() {
   const { repos, ownerId, invalidate, storageLabel, persistent } = useServices();
@@ -88,7 +89,7 @@ export function SettingsScreen() {
         onPress={() =>
           setDialog({
             title: 'Delete all your data?',
-            message: 'This permanently removes your profile, goals, clubs, bags, distances, past rounds, range sessions and coach notes from this device. It cannot be undone. Export first if you want a copy.',
+            message: 'This permanently removes your profile, goals, clubs, bags, distances, past rounds, range sessions, coach notes, imported swing videos and their analyses from this device (originals in Photos are not touched). It cannot be undone. Export first if you want a copy.',
             actions: [
               {
                 label: 'Delete everything',
@@ -96,6 +97,7 @@ export function SettingsScreen() {
                 testID: 'dialog-delete-all',
                 onPress: async () => {
                   await repos.deleteAllData(ownerId);
+                  deleteSwingVideoFiles();
                   setDialog(null);
                   invalidate();
                   router.replace('/');

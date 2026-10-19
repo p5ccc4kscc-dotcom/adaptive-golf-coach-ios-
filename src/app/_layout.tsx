@@ -57,6 +57,8 @@ export default function RootLayout() {
           <Stack.Screen name="bag" options={{ title: 'Build My Bag' }} />
           <Stack.Screen name="profile/[section]" options={{ title: 'Player profile' }} />
           <Stack.Screen name="settings" options={{ title: 'Units, data & privacy' }} />
+          <Stack.Screen name="analyse/[id]" options={{ title: 'Swing video' }} />
+          <Stack.Screen name="analyse/compare" options={{ title: 'Compare swings' }} />
         </Stack>
       </AppServicesProvider>
     </SafeAreaProvider>

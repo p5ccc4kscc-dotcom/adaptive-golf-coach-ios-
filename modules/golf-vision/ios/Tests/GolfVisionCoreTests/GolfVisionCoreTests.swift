@@ -22,6 +22,15 @@ final class OrientationTests: XCTestCase {
   }
 }
 
+/// Apple Vision's body-pose request cannot run on the iOS Simulator ("Unable to setup request in
+/// VNDetectHumanBodyPoseRequest", seen in CI). Tests that need it run on macOS and, later, on a real
+/// iPhone; on the Simulator they are skipped with this reason rather than reported as passing.
+func requireVisionBodyPose() throws {
+  #if targetEnvironment(simulator)
+  throw XCTSkip("Apple Vision body pose is not supported on the iOS Simulator; covered by the macOS job and device testing.")
+  #endif
+}
+
 final class VideoPipelineTests: XCTestCase {
   func testProbeReadsTheFilesOwnMetadata() throws {
     let url = TestVideo.tempURL("probe")
@@ -40,6 +49,7 @@ final class VideoPipelineTests: XCTestCase {
   }
 
   func testTimestampsAreExactAndSamplingRespectsTheFrameRateCap() throws {
+    try requireVisionBodyPose()
     let url = TestVideo.tempURL("hfr")
     try TestVideo.write(.flat(width: 320, height: 240, r: 200, g: 200, b: 200), frameCount: 120, fps: 240, transform: .identity, to: url)
     let all = try PoseAnalyzer.analyze(url: url)
@@ -57,6 +67,7 @@ final class VideoPipelineTests: XCTestCase {
   }
 
   func testAVideoWithNobodyInItDetectsNobody() throws {
+    try requireVisionBodyPose()
     let url = TestVideo.tempURL("empty")
     try TestVideo.write(.flat(width: 640, height: 480, r: 30, g: 90, b: 160), frameCount: 15, fps: 30, transform: .identity, to: url)
     let result = try PoseAnalyzer.analyze(url: url)
@@ -68,6 +79,7 @@ final class VideoPipelineTests: XCTestCase {
   }
 
   func testCancellationStopsTheAnalysis() throws {
+    try requireVisionBodyPose()
     let url = TestVideo.tempURL("cancel")
     try TestVideo.write(.flat(width: 320, height: 240, r: 0, g: 0, b: 0), frameCount: 60, fps: 30, transform: .identity, to: url)
     var seen = 0
@@ -117,6 +129,7 @@ final class RealPersonTests: XCTestCase {
   }
 
   func testPersonIsDetectedAndJointsAreUprightForEveryRotation() throws {
+    try requireVisionBodyPose()
     guard let path = ProcessInfo.processInfo.environment["GOLFVISION_TEST_IMAGE"] else {
       throw XCTSkip("GOLFVISION_TEST_IMAGE not set; the CI job provides it")
     }

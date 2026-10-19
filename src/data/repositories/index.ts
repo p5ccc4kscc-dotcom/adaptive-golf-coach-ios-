@@ -5,6 +5,7 @@ import { coachNoteRepository, rangeOutcomeRepository, skillBaselineRepository } 
 import { clubCatalogRepository, ownerRepository } from './ownerRepository';
 import { baselineRepository, goalRepository, onboardingRepository, preferenceRepository, profileRepository } from './profileRepository';
 import { STORAGE_IDS } from '../db/storageIds';
+import { poseAnalysisRepository, swingVideoRepository } from './swingRepository';
 
 export type { RepoContext } from './context';
 
@@ -25,10 +26,13 @@ const OWNER_TABLES = [
   'club_bag_preset',
   'club_bag_membership',
   'equipment_photo',
+  'swing_video',
+  'pose_analysis',
+  'pose_frame_data',
 ] as const;
 
 export const EXPORT_FORMAT = STORAGE_IDS.exportFormat;
-export const EXPORT_FORMAT_VERSION = 2;
+export const EXPORT_FORMAT_VERSION = 3;
 
 export function createRepositories(ctx: RepoContext) {
   const repos = {
@@ -45,6 +49,8 @@ export function createRepositories(ctx: RepoContext) {
     rangeOutcomes: rangeOutcomeRepository(ctx),
     coachNotes: coachNoteRepository(ctx),
     skillBaselines: skillBaselineRepository(ctx),
+    swingVideos: swingVideoRepository(ctx),
+    poseAnalyses: poseAnalysisRepository(ctx),
 
     /** Migrates the schema, syncs reference data and returns the local owner id. Creates no golfer data. */
     async initialise(): Promise<string> {
@@ -69,6 +75,9 @@ export function createRepositories(ctx: RepoContext) {
         'club_distance_observation',
         'club_bag_preset',
         'equipment_photo',
+        'swing_video',
+        'pose_analysis',
+        'pose_frame_data',
       ];
       for (const t of byOwner) tables[t] = await ctx.db.all(`SELECT * FROM ${t} WHERE owner_id = ?`, [ownerId]);
       tables.club_instance_revision = await ctx.db.all(
@@ -92,7 +101,7 @@ export function createRepositories(ctx: RepoContext) {
         await tx.run('DELETE FROM club_bag_membership WHERE preset_id IN (SELECT id FROM club_bag_preset WHERE owner_id = ?)', [ownerId]);
         await tx.run('DELETE FROM club_instance_revision WHERE club_instance_id IN (SELECT id FROM club_instance WHERE owner_id = ?)', [ownerId]);
         await tx.run('DELETE FROM baseline_round_hole WHERE baseline_round_id IN (SELECT id FROM baseline_round WHERE owner_id = ?)', [ownerId]);
-        for (const t of ['equipment_photo', 'baseline_range_outcome', 'golf_coach_note', 'player_skill_baseline', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
+        for (const t of ['pose_frame_data', 'pose_analysis', 'swing_video', 'equipment_photo', 'baseline_range_outcome', 'golf_coach_note', 'player_skill_baseline', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
           await tx.run(`DELETE FROM ${t} WHERE owner_id = ?`, [ownerId]);
         }
       });

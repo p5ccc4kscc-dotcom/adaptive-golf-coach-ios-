@@ -135,8 +135,9 @@ async function hasHistory(tx: SqlExecutor, id: string): Promise<boolean> {
           + (SELECT COUNT(*) FROM equipment_photo WHERE club_instance_id = ?)
           + (SELECT COUNT(*) FROM baseline_range_outcome WHERE club_instance_id = ?)
           + (SELECT COUNT(*) FROM golf_coach_note WHERE club_instance_id = ?)
-          + (SELECT COUNT(*) FROM player_skill_baseline WHERE club_instance_id = ?) AS n`,
-    [id, id, id, id, id, id],
+          + (SELECT COUNT(*) FROM player_skill_baseline WHERE club_instance_id = ?)
+          + (SELECT COUNT(*) FROM swing_video WHERE club_instance_id = ?) AS n`,
+    [id, id, id, id, id, id, id],
   );
   return Number(r?.n ?? 0) > 0;
 }

@@ -59,7 +59,7 @@ test('slice and hook wording follows the playing hand, and changes when the hand
 test('unfinished features are labelled as planned, never as available', async ({ page }) => {
   await exploreEmpty(page);
   await page.getByTestId('today-feature-status').click();
-  await expect(page.getByTestId('feature-swing_analysis').getByText('Planned · M1')).toBeVisible();
+  await expect(page.getByTestId('feature-swing_analysis').getByText('Experimental · M1a')).toBeVisible();
   await expect(page.getByTestId('feature-backup').getByText('Planned · M4')).toBeVisible();
   await expect(page.getByTestId('feature-coaching').getByText('Planned · M2')).toBeVisible();
   await page.goto('./settings');

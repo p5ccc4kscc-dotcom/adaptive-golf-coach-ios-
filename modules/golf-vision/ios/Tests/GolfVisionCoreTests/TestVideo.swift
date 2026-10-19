@@ -80,6 +80,9 @@ enum TestVideo {
     ])
     input.transform = transform
     input.expectsMediaDataInRealTime = false
+    // Store times on a 1/fps time base so i / fps is exactly representable (the default 1/600
+    // cannot hold 1/240 s; the analyser then correctly reports the rounded times stored in the file).
+    input.mediaTimeScale = fps
     let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
       kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
       kCVPixelBufferWidthKey as String: stored.width,

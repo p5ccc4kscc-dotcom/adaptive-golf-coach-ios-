@@ -254,6 +254,70 @@ CREATE TABLE player_skill_baseline (
 );
 `,
   },
+  {
+    version: 3,
+    name: 'm1a_swing_videos_pose_analyses',
+    sql: `
+-- A swing video the golfer imported. The file is a private copy inside the app's documents
+-- folder; the original in Photos is never changed. Metadata is read from the file itself.
+-- Unknown camera view, hand or club stay NULL.
+CREATE TABLE swing_video (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  file_uri TEXT NOT NULL,
+  original_file_name TEXT,
+  source TEXT NOT NULL CHECK (source IN ('photos_import')),
+  imported_at TEXT NOT NULL,
+  recorded_on TEXT,
+  duration_s REAL NOT NULL,
+  display_width INTEGER NOT NULL,
+  display_height INTEGER NOT NULL,
+  rotation_deg INTEGER NOT NULL,
+  nominal_fps REAL NOT NULL,
+  estimated_frame_count INTEGER NOT NULL,
+  codec TEXT NOT NULL,
+  file_size_bytes INTEGER,
+  camera_view TEXT CHECK (camera_view IS NULL OR camera_view IN ('fo','dtl','other')),
+  playing_hand TEXT CHECK (playing_hand IS NULL OR playing_hand IN ('right','left')),
+  club_instance_id TEXT REFERENCES club_instance(id),
+  notes TEXT,
+  archived_at TEXT
+);
+CREATE INDEX idx_swing_video_owner ON swing_video (owner_id, imported_at);
+
+-- One run of the analyser over a video. Re-analysing adds a row; earlier runs are kept.
+CREATE TABLE pose_analysis (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  swing_video_id TEXT NOT NULL REFERENCES swing_video(id),
+  created_at TEXT NOT NULL,
+  engine TEXT NOT NULL,
+  engine_version TEXT NOT NULL,
+  app_version TEXT,
+  params_json TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('completed','failed','cancelled')),
+  error_code TEXT,
+  error_message TEXT,
+  frames_analysed INTEGER NOT NULL DEFAULT 0,
+  decoded_frames INTEGER NOT NULL DEFAULT 0,
+  truncated INTEGER NOT NULL DEFAULT 0,
+  processing_s REAL,
+  quality_json TEXT,
+  phases_json TEXT
+);
+CREATE INDEX idx_pose_analysis_video ON pose_analysis (swing_video_id, created_at);
+
+-- Detected landmarks for a completed analysis, exactly as returned by Apple Vision (rounded to
+-- 4 decimals). Kept separate so lists stay fast.
+CREATE TABLE pose_frame_data (
+  pose_analysis_id TEXT PRIMARY KEY NOT NULL REFERENCES pose_analysis(id) ON DELETE CASCADE,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  format_version INTEGER NOT NULL,
+  joint_order_json TEXT NOT NULL,
+  frames_json TEXT NOT NULL
+);
+`,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

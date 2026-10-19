@@ -6,7 +6,7 @@ import { clubFields, openTestApp } from './helpers';
 describe('schema migrations', () => {
   it('are append-only and contiguous, ending at the latest version', () => {
     expect(MIGRATIONS.map((m) => m.version)).toEqual(MIGRATIONS.map((_, i) => i + 1));
-    expect(LATEST_SCHEMA_VERSION).toBe(2);
+    expect(LATEST_SCHEMA_VERSION).toBe(3);
   });
 });
 

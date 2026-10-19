@@ -1,38 +1,40 @@
-import { Platform } from 'react-native';
-
-import { AppText, Card, NotAvailable, Screen, Stack } from '@/ui/components';
+import { NOT_MEASURABLE } from '@/domain/pose/measures';
+import { AppText, Card, Disclosure, NotAvailable, Screen, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
+const REASONS = {
+  browser: 'Swing analysis uses Apple Vision on the iPhone and is built into the BadGolfer iPhone app (M1a, in testing). It cannot run in this browser preview.',
+  not_ios: 'Swing analysis uses Apple Vision and is available only in the iPhone app.',
+  module_missing: 'This build does not include the swing-analysis module (for example Expo Go). It needs a BadGolfer development or release build.',
+} as const;
+
 /**
- * M0: the analyser is not built yet. This screen says so plainly and shows
- * the (real) camera-setup guidance it will use. No sample analysis is shown.
+ * Shown wherever the on-device analyser is not present. It says so plainly and
+ * gives real filming guidance. No sample analysis is ever shown.
  */
-export function AnalyseScreen() {
+export function AnalyseInfo({ reason }: { reason: keyof typeof REASONS }) {
   return (
     <Screen testID="analyse" tab title="Analyse" subtitle="Swing video analysis">
-      <NotAvailable
-        title="Swing video analysis"
-        milestone="M1"
-        detail={
-          Platform.OS === 'web'
-            ? 'Arrives in M1 as on-device Apple Vision body tracking inside the iPhone app. It will not run in this browser preview.'
-            : 'Arrives in M1: import a video, track body positions on this device with Apple Vision, and see only measurements the clip can support.'
-        }
-      />
+      <NotAvailable title="Swing video analysis" milestone="M1a · iPhone app only" detail={REASONS[reason]} />
       <Card>
         <Stack gap={space.sm}>
-          <AppText variant="subheading">What it will and won’t measure</AppText>
-          <AppText>Planned (when the view and visibility allow): body positions and movement such as head and hip movement, posture change and timing between marked positions.</AppText>
-          <AppText>Never claimed from a phone video of the body alone: clubface angle, club path, face-to-path, club or ball speed, spin, carry distance or strike location.</AppText>
+          <AppText variant="subheading">What it measures, and what it can’t</AppText>
+          <AppText variant="caption">
+            It finds body joints in each frame and works out timing and 2D positions from them, such as head movement and trunk tilt, with the
+            uncertainty shown.
+          </AppText>
+          <Disclosure label="Never measured from body tracking" openLabel="Hide list" testID="not-measurable">
+            <AppText variant="caption">{NOT_MEASURABLE.map((n) => n.label).join(', ')}.</AppText>
+          </Disclosure>
         </Stack>
       </Card>
       <Card>
-        <Stack gap={space.sm}>
+        <Stack gap={space.xs}>
           <AppText variant="subheading">Filming tips you can use now</AppText>
-          <AppText>• Down-the-line: camera behind you, looking along your target line.</AppText>
-          <AppText>• Face-on: camera in front of you, at right angles to the target line.</AppText>
-          <AppText>• Phone on a stable support at about hand-to-elbow height, whole body and club in frame, good light, uncluttered background, only one golfer in view.</AppText>
-          <AppText>• Slow-motion (120 fps or more) helps when convenient; normal 60 fps still works with less timing detail.</AppText>
+          <AppText variant="caption">• Down the line: camera behind you, looking along your target line.</AppText>
+          <AppText variant="caption">• Face-on: camera in front of you, at right angles to the target line.</AppText>
+          <AppText variant="caption">• Steady support at about hand height, whole body in frame, good light, only you in view.</AppText>
+          <AppText variant="caption">• Slow motion (120–240 fps) gives finer timing; 60 fps still works.</AppText>
         </Stack>
       </Card>
     </Screen>

@@ -22,7 +22,7 @@ export const FEATURES: readonly FeatureInfo[] = [
   { id: 'clubs', name: 'My Clubs and Build My Bag', status: 'available', milestone: 'M0', detail: 'Brand and model per club, 14-club bags, named setups.' },
   { id: 'baseline', name: 'Baseline rounds and range sessions', status: 'available', milestone: 'M0', detail: 'Self-reported totals or hole-by-hole putts.' },
   { id: 'local_storage', name: 'Private on-device storage', status: 'available', milestone: 'M0', detail: 'Stored only on this device (in this browser for the preview).' },
-  { id: 'swing_analysis', name: 'Swing video analysis', status: 'planned', milestone: 'M1', detail: 'On-device Apple Vision body tracking in the iPhone app. It cannot run in the browser.' },
+  { id: 'swing_analysis', name: 'Swing video analysis', status: 'experimental', milestone: 'M1a', detail: 'iPhone app only: on-device Apple Vision body tracking. Not yet tested on a real iPhone; cannot run in the browser.' },
   { id: 'coaching', name: 'Coaching programmes, drills and mastery checks', status: 'planned', milestone: 'M2', detail: 'Needs logged practice evidence and the skills engine.' },
   { id: 'rounds', name: 'Round scorecards, practice logging and trends', status: 'planned', milestone: 'M3', detail: 'Missing values will stay blank, never zero.' },
   { id: 'backup', name: 'Private cloud backup and sync', status: 'planned', milestone: 'M4', detail: 'Not active. Nothing is backed up yet; use Export to keep a copy.' },

@@ -1,0 +1,23 @@
+# Two 7-irons with different brands are separate clubs (fictional brands).
+appId: com.example.adaptivegolfcoach
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: 'explore-empty'
+- tapOn: 'Add your first club'
+- tapOn:
+    id: 'tile-iron_7'
+- tapOn:
+    id: 'brand'
+- inputText: 'Example Maker A'
+- tapOn:
+    id: 'save-add-bag'
+- tapOn:
+    id: 'tile-iron_7'
+- tapOn:
+    id: 'brand'
+- inputText: 'Example Maker B'
+- tapOn:
+    id: 'save-clubs-only'
+- assertVisible: 'Owned × 2'

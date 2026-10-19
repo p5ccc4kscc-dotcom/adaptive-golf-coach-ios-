@@ -1,0 +1,11 @@
+# Fresh install shows the blank welcome screen and can explore with an empty profile.
+appId: com.example.adaptivegolfcoach
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'Welcome'
+- tapOn:
+    id: 'explore-empty'
+- assertVisible:
+    id: 'today-bag-count'
+- assertVisible: 'My Bag: 0 / 14 in bag · 0 owned'

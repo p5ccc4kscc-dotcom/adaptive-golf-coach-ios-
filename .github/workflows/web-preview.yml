@@ -1,0 +1,49 @@
+name: Deploy browser preview (EAS Hosting)
+
+# Publishes the web build so it can be opened in Safari on iPhone/iPad.
+# Needs a free Expo account: add an EXPO_TOKEN repository secret.
+# Until that secret exists this workflow exits successfully without deploying.
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+concurrency:
+  group: web-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Check for Expo token
+        id: token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::notice::EXPO_TOKEN secret not set - skipping deployment. See docs/BUILD_AND_RUN.md."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.present == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.token.outputs.present == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.token.outputs.present == 'true'
+        run: npm ci
+      - name: Link EAS project (first run creates it under the token's account)
+        if: steps.token.outputs.present == 'true'
+        run: npx eas-cli@latest init --non-interactive --force
+      - name: Export web build
+        if: steps.token.outputs.present == 'true'
+        run: npx expo export --platform web
+      - name: Deploy to EAS Hosting (production alias)
+        if: steps.token.outputs.present == 'true'
+        run: npx eas-cli@latest deploy --prod --non-interactive

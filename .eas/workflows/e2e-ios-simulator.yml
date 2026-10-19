@@ -1,0 +1,21 @@
+# NOT YET RUN. Requires: Expo account, this repo linked in EAS (GitHub integration),
+# and confirmation of plan cost/availability for iOS simulator builds and Maestro jobs.
+# Simulator builds use `withoutCredentials`, so no Apple Developer membership is needed.
+name: e2e-ios-simulator
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build_ios_simulator:
+    type: build
+    params:
+      platform: ios
+      profile: e2e-test
+
+  maestro_ios:
+    needs: [build_ios_simulator]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_ios_simulator.outputs.build_id }}
+      flow_path: ['.maestro/onboarding-empty.yml', '.maestro/add-club.yml']

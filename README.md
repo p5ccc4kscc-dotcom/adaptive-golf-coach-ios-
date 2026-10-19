@@ -1,2 +1,82 @@
-# adaptive-golf-coach-ios-
-AI-powered iPhone golf coaching app with swing analysis, personalised training, skill progression and performance tracking.
+# Adaptive Golf Coach (working name)
+
+A private, evidence-based golf coaching app for iPhone, built with **React Native + Expo +
+TypeScript** and compiled in the cloud with **EAS** (no Mac or Xcode needed).
+
+Every golfer starts from a **blank profile** and enters their own information. Nothing about any
+real person is built in. Unknown values stay unknown. The app will not invent measurements,
+distances, scores or swing faults.
+
+> Status: **M0 (foundation) is implemented.** It covers onboarding, the full club catalogue,
+> per-club Brand/Model, My Clubs, Build My Bag and local persistence. The swing analyser (M1) has
+> not been started. See [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+
+## What works today (M0)
+
+- An 8-step, fully skippable onboarding: Welcome → About your golf → Comfort → Tendencies &
+  goals → Practice → Clubs → Baseline → Review. You can resume where you left off after a
+  relaunch, and edit any answer later under My Game.
+- A **Club Face Gallery** with 55 club types, each shown as its own tile with original artwork:
+  drivers, 2–11 woods, 1–9 hybrids, 1–9 driving/utility irons, 1–9 irons, named wedges,
+  wedge-by-loft, stamped wedges such as “W”, chippers, putters and custom clubs.
+- **Brand and Model text boxes on every individual club**, plus optional loft (or “not known”),
+  length, lie, shaft, grip, condition, purchase year, notes and handedness override.
+- Per-club distance records: estimated or measured, carry or total, with source, context,
+  date and number of shots.
+- Optional baseline:
+  - past rounds, with putts as a total or hole by hole (blank holes stay “not recorded”, never 0);
+  - recent range sessions, choosing the club from your bag, another owned club, or “Unknown”;
+  - dated coach notes.
+- **My Clubs** (owned, as a list or a grouped visual grid) is kept separate from **My Bag** (active):
+  - a competition bag holds at most 14 clubs, and a 15th is refused with a swap offer;
+  - practice selections can be larger and are labelled as such;
+  - named bag presets, swap and clear;
+  - clubs that have history are archived on delete rather than erased.
+- Local private storage: SQLite on iPhone; in the browser preview, SQLite (WebAssembly) saved
+  in that browser. A second, out-of-date tab can never overwrite newer data; it asks for a reload.
+  JSON export and **Delete all my data** are included, and the sync status says plainly that
+  nothing is backed up yet.
+- Analyse, Learn and Rounds show clearly labelled **“Not available yet”** cards. No sample or
+  fake analysis is shown anywhere.
+
+## Viewing it on your iPhone
+
+See [`docs/BUILD_AND_RUN.md`](docs/BUILD_AND_RUN.md). In short:
+
+1. **Browser preview (free, no Apple membership):** GitHub Pages at
+   `https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/`, once Pages is switched on
+   (Settings → Pages → Source: GitHub Actions) and the M0 branch is merged to `main`. *Not yet
+   verified live* (see the doc).
+2. **Real iPhone app:** this needs the Apple Developer Program (US$99/year). It is first
+   required in M1, for the on-device swing analyser.
+
+Screenshots from the automated browser tests are in [`docs/screenshots/m0`](docs/screenshots/m0).
+
+## Developer commands
+
+```bash
+npm install            # also copies the sql.js browser build into public/vendor
+npm run typecheck      # TypeScript
+npm run lint           # ESLint (expo lint)
+npm test               # Jest: domain + real-SQLite data tests + native component tests
+npm run export:web     # build the browser preview into dist/
+npm run test:e2e       # Playwright end-to-end tests against dist/ (Chromium, iPhone-sized)
+npm run export:pages && npm run test:e2e:pages   # same, for the GitHub Pages sub-path build
+npx expo start         # dev server (needs a computer; not required for the owner)
+```
+
+## Project layout
+
+```
+src/app/            Expo Router screens (tabs, onboarding/[step], clubs/*, bag, profile/[section])
+src/domain/         Pure TypeScript rules: catalogue, clubs, bag, profile, onboarding, starter plan
+src/data/           SQL driver (expo-sqlite / sql.js), migrations, repositories
+src/features/       Screen components (onboarding steps, clubs, profile, today)
+src/ui/             Theme, accessible components, original club artwork
+tests/              unit/, data/ (real SQLite), ui/ (native renderer), fixtures/ (fictional only)
+e2e/                Playwright browser tests
+.eas/, .maestro/    Planned iOS-simulator E2E (not yet run)
+docs/               Architecture, build/run, testing, data dictionary, privacy, spec copies
+```
+
+Not affiliated with or endorsed by any golf organisation, coach, equipment maker or Apple.

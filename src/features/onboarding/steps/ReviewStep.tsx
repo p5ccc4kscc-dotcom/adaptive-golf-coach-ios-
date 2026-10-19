@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 
 import { UnitPreferences } from '@/data/repositories/profileRepository';
 import { bagCountLabel } from '@/domain/bag';
+import { roundPuttsText } from '@/domain/baseline';
 import { clubDisplayName } from '@/domain/clubs';
 import { formatLocalDate } from '@/domain/dates';
 import { complete } from '@/domain/onboarding';
@@ -19,13 +20,15 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
   const router = useRouter();
   const data = useQuery(async (s) => {
     const bag = await s.repos.bags.ensureDefault(s.ownerId);
-    const [clubs, members, goals, rounds] = await Promise.all([
+    const [clubs, members, goals, rounds, outcomes, notes] = await Promise.all([
       s.repos.clubs.list(s.ownerId),
       s.repos.bags.members(bag.id),
       s.repos.goals.list(s.ownerId),
       s.repos.baseline.list(s.ownerId),
+      s.repos.rangeOutcomes.list(s.ownerId),
+      s.repos.coachNotes.list(s.ownerId),
     ]);
-    return { bag, clubs, members, goals, rounds };
+    return { bag, clubs, members, goals, rounds, outcomes, notes };
   }).data;
 
   const editStep = (step: string) => router.push({ pathname: '/onboarding/[step]', params: { step, return: 'review' } });
@@ -79,12 +82,16 @@ export function ReviewStep({ profile, units, ...props }: StepProps & { profile: 
           {data?.rounds.length ? (
             data.rounds.map((r) => (
               <AppText key={r.id}>
-                {formatLocalDate(r.playedOn)} · {r.holes} holes · score {r.totalStrokes ?? 'not entered'} · putts {r.totalPutts ?? 'not recorded'}
+                {formatLocalDate(r.playedOn)} · {r.holes} holes · score {r.totalStrokes ?? 'not entered'} · {roundPuttsText(r)}
               </AppText>
             ))
           ) : (
             <AppText muted>No past rounds entered.</AppText>
           )}
+          <AppText>
+            {data?.outcomes.length ? `${data.outcomes.length} recent range ${data.outcomes.length === 1 ? 'session' : 'sessions'} entered.` : 'No range sessions entered.'}
+          </AppText>
+          <AppText>{data?.notes.length ? `${data.notes.length} coach ${data.notes.length === 1 ? 'note' : 'notes'} (self-reported).` : 'No coach notes.'}</AppText>
         </Stack>
       </Card>
       <StarterPlanCard profile={profile} bag={data?.members ?? []} />

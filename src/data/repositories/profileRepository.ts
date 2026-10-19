@@ -196,6 +196,17 @@ export function baselineRepository(ctx: RepoContext) {
   return {
     async list(ownerId: string): Promise<BaselineRound[]> {
       const rows = await ctx.db.all<BaselineRow>('SELECT * FROM baseline_round WHERE owner_id = ? ORDER BY played_on DESC, created_at DESC', [ownerId]);
+      const holeRows = await ctx.db.all<{ baseline_round_id: string; hole_number: number; putts: number | null }>(
+        'SELECT h.baseline_round_id, h.hole_number, h.putts FROM baseline_round_hole h JOIN baseline_round r ON r.id = h.baseline_round_id WHERE r.owner_id = ?',
+        [ownerId],
+      );
+      const holesFor = (id: string, holes: number): (number | null)[] | null => {
+        const mine = holeRows.filter((h) => h.baseline_round_id === id);
+        if (mine.length === 0) return null;
+        const out: (number | null)[] = Array.from({ length: holes }, () => null);
+        for (const h of mine) out[Number(h.hole_number) - 1] = h.putts === null ? null : Number(h.putts);
+        return out;
+      };
       return rows.map((r) => ({
         id: r.id,
         ownerId: r.owner_id,
@@ -206,19 +217,31 @@ export function baselineRepository(ctx: RepoContext) {
         courseName: r.course_name,
         source: r.source,
         notes: r.notes,
+        holePutts: holesFor(r.id, Number(r.holes)),
         createdAt: r.created_at,
       }));
     },
-    async add(ownerId: string, round: Omit<BaselineRound, 'id' | 'ownerId' | 'createdAt'>): Promise<string> {
+    /** `holePutts`, when given, records putts hole by hole (null = not counted) instead of a total. */
+    async add(ownerId: string, round: Omit<BaselineRound, 'id' | 'ownerId' | 'createdAt' | 'holePutts'> & { holePutts?: (number | null)[] | null }): Promise<string> {
       const id = ctx.newId();
-      await ctx.db.run(
-        'INSERT INTO baseline_round (id, owner_id, played_on, holes, total_strokes, total_putts, course_name, source, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, ownerId, round.playedOn, round.holes, round.totalStrokes, round.totalPutts, round.courseName, round.source, round.notes, nowIso(ctx)],
-      );
+      await ctx.db.transaction(async (tx) => {
+        await tx.run(
+          'INSERT INTO baseline_round (id, owner_id, played_on, holes, total_strokes, total_putts, course_name, source, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [id, ownerId, round.playedOn, round.holes, round.totalStrokes, round.holePutts ? null : round.totalPutts, round.courseName, round.source, round.notes, nowIso(ctx)],
+        );
+        if (round.holePutts) {
+          for (let i = 0; i < round.holePutts.length; i++) {
+            await tx.run('INSERT INTO baseline_round_hole (id, baseline_round_id, hole_number, putts) VALUES (?, ?, ?, ?)', [ctx.newId(), id, i + 1, round.holePutts[i] ?? null]);
+          }
+        }
+      });
       return id;
     },
     async remove(id: string): Promise<void> {
-      await ctx.db.run('DELETE FROM baseline_round WHERE id = ?', [id]);
+      await ctx.db.transaction(async (tx) => {
+        await tx.run('DELETE FROM baseline_round_hole WHERE baseline_round_id = ?', [id]);
+        await tx.run('DELETE FROM baseline_round WHERE id = ?', [id]);
+      });
     },
   };
 }

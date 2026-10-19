@@ -1,6 +1,7 @@
 import { migrate } from '../db/migrations';
 import { clubInventoryRepository, bagPresetRepository, distanceRepository } from './clubRepository';
 import { RepoContext, nowIso } from './context';
+import { coachNoteRepository, rangeOutcomeRepository, skillBaselineRepository } from './baselineDetailRepository';
 import { clubCatalogRepository, ownerRepository } from './ownerRepository';
 import { baselineRepository, goalRepository, onboardingRepository, preferenceRepository, profileRepository } from './profileRepository';
 
@@ -13,6 +14,10 @@ const OWNER_TABLES = [
   'player_goal',
   'onboarding_progress',
   'baseline_round',
+  'baseline_round_hole',
+  'baseline_range_outcome',
+  'golf_coach_note',
+  'player_skill_baseline',
   'club_instance',
   'club_instance_revision',
   'club_distance_observation',
@@ -22,7 +27,7 @@ const OWNER_TABLES = [
 ] as const;
 
 export const EXPORT_FORMAT = 'adaptive-golf-coach-export';
-export const EXPORT_FORMAT_VERSION = 1;
+export const EXPORT_FORMAT_VERSION = 2;
 
 export function createRepositories(ctx: RepoContext) {
   const repos = {
@@ -36,6 +41,9 @@ export function createRepositories(ctx: RepoContext) {
     clubs: clubInventoryRepository(ctx),
     distances: distanceRepository(ctx),
     bags: bagPresetRepository(ctx),
+    rangeOutcomes: rangeOutcomeRepository(ctx),
+    coachNotes: coachNoteRepository(ctx),
+    skillBaselines: skillBaselineRepository(ctx),
 
     /** Migrates the schema, syncs reference data and returns the local owner id. Creates no golfer data. */
     async initialise(): Promise<string> {
@@ -47,10 +55,27 @@ export function createRepositories(ctx: RepoContext) {
     /** Plain JSON export of everything this owner has stored (no proprietary format). */
     async exportAll(ownerId: string): Promise<Record<string, unknown>> {
       const tables: Record<string, unknown[]> = {};
-      const byOwner = ['user_preference', 'profile_fact', 'player_goal', 'onboarding_progress', 'baseline_round', 'club_instance', 'club_distance_observation', 'club_bag_preset', 'equipment_photo'];
+      const byOwner = [
+        'user_preference',
+        'profile_fact',
+        'player_goal',
+        'onboarding_progress',
+        'baseline_round',
+        'baseline_range_outcome',
+        'golf_coach_note',
+        'player_skill_baseline',
+        'club_instance',
+        'club_distance_observation',
+        'club_bag_preset',
+        'equipment_photo',
+      ];
       for (const t of byOwner) tables[t] = await ctx.db.all(`SELECT * FROM ${t} WHERE owner_id = ?`, [ownerId]);
       tables.club_instance_revision = await ctx.db.all(
         'SELECT r.* FROM club_instance_revision r JOIN club_instance c ON c.id = r.club_instance_id WHERE c.owner_id = ?',
+        [ownerId],
+      );
+      tables.baseline_round_hole = await ctx.db.all(
+        'SELECT h.* FROM baseline_round_hole h JOIN baseline_round r ON r.id = h.baseline_round_id WHERE r.owner_id = ?',
         [ownerId],
       );
       tables.club_bag_membership = await ctx.db.all(
@@ -65,7 +90,8 @@ export function createRepositories(ctx: RepoContext) {
       await ctx.db.transaction(async (tx) => {
         await tx.run('DELETE FROM club_bag_membership WHERE preset_id IN (SELECT id FROM club_bag_preset WHERE owner_id = ?)', [ownerId]);
         await tx.run('DELETE FROM club_instance_revision WHERE club_instance_id IN (SELECT id FROM club_instance WHERE owner_id = ?)', [ownerId]);
-        for (const t of ['equipment_photo', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
+        await tx.run('DELETE FROM baseline_round_hole WHERE baseline_round_id IN (SELECT id FROM baseline_round WHERE owner_id = ?)', [ownerId]);
+        for (const t of ['equipment_photo', 'baseline_range_outcome', 'golf_coach_note', 'player_skill_baseline', 'club_distance_observation', 'club_bag_preset', 'club_instance', 'baseline_round', 'player_goal', 'profile_fact', 'onboarding_progress', 'user_preference']) {
           await tx.run(`DELETE FROM ${t} WHERE owner_id = ?`, [ownerId]);
         }
       });

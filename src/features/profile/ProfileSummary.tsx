@@ -34,7 +34,6 @@ export const PROFILE_SECTIONS: { step: OnboardingStep; title: string; fields: { 
       { key: 'usualRounds', label: 'Usual rounds', format: (p) => (p.usualRounds.value ? LABELS.usualRounds[p.usualRounds.value] : null) },
       { key: 'practiceTypes', label: 'Practice', format: (p) => list(p.practiceTypes.value, LABELS.practiceTypes) },
       { key: 'typicalPracticeMinutes', label: 'Typical session', format: (p) => (p.typicalPracticeMinutes.value === null ? null : `${p.typicalPracticeMinutes.value} min`) },
-      { key: 'ageRange', label: 'Age range', format: (p) => (p.ageRange.value ? LABELS.ageRange[p.ageRange.value] : null) },
     ],
   },
   {

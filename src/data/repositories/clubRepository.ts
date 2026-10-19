@@ -127,13 +127,16 @@ async function insertClub(ctx: RepoContext, tx: SqlExecutor, ownerId: string, fi
   return id;
 }
 
-/** Any distance record, past bag membership or photo counts as history worth keeping. */
+/** Any distance, past bag membership, photo, range outcome, coach note or skill baseline counts as history worth keeping. */
 async function hasHistory(tx: SqlExecutor, id: string): Promise<boolean> {
   const r = await tx.get<{ n: number }>(
     `SELECT (SELECT COUNT(*) FROM club_distance_observation WHERE club_instance_id = ?)
           + (SELECT COUNT(*) FROM club_bag_membership WHERE club_instance_id = ? AND removed_at IS NOT NULL)
-          + (SELECT COUNT(*) FROM equipment_photo WHERE club_instance_id = ?) AS n`,
-    [id, id, id],
+          + (SELECT COUNT(*) FROM equipment_photo WHERE club_instance_id = ?)
+          + (SELECT COUNT(*) FROM baseline_range_outcome WHERE club_instance_id = ?)
+          + (SELECT COUNT(*) FROM golf_coach_note WHERE club_instance_id = ?)
+          + (SELECT COUNT(*) FROM player_skill_baseline WHERE club_instance_id = ?) AS n`,
+    [id, id, id, id, id, id],
   );
   return Number(r?.n ?? 0) > 0;
 }
@@ -506,3 +509,7 @@ export function bagPresetRepository(ctx: RepoContext) {
   };
   return repo;
 }
+
+export type ClubInventoryRepository = ReturnType<typeof clubInventoryRepository>;
+export type DistanceRepository = ReturnType<typeof distanceRepository>;
+export type BagPresetRepository = ReturnType<typeof bagPresetRepository>;

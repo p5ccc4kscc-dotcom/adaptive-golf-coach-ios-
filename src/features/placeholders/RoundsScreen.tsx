@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 
+import { roundPuttsText } from '@/domain/baseline';
 import { formatLocalDate } from '@/domain/dates';
 import { useQuery } from '@/services/AppServices';
 import { AppText, Button, Card, NotAvailable, Screen, Stack } from '@/ui/components';
@@ -21,7 +22,7 @@ export function RoundsScreen() {
           {rounds.length === 0 ? <AppText muted>None entered.</AppText> : null}
           {rounds.map((r) => (
             <AppText key={r.id}>
-              {formatLocalDate(r.playedOn)} · {r.holes} holes · score {r.totalStrokes ?? 'not entered'} · putts {r.totalPutts ?? 'not recorded'} · self-reported
+              {formatLocalDate(r.playedOn)} · {r.holes} holes · score {r.totalStrokes ?? 'not entered'} · {roundPuttsText(r)} · self-reported
             </AppText>
           ))}
           <Button label="Add or edit past rounds" variant="secondary" onPress={() => router.push('/profile/baseline')} />

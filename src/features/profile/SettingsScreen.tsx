@@ -5,14 +5,16 @@ import { Platform, Share } from 'react-native';
 
 import { LATEST_SCHEMA_VERSION } from '@/data/db/migrations';
 import { DistanceUnit, HeightUnit, LengthUnit } from '@/domain/units';
-import { useServices, useUnits } from '@/services/AppServices';
-import { AppText, Button, Card, ChoiceChips, Dialog, DialogAction, Loading, NotAvailable, Screen, SectionHeader, Stack } from '@/ui/components';
+import { useQuery, useServices, useUnits } from '@/services/AppServices';
+import { localOnlySyncProvider, SYNC_STATUS_LABELS } from '@/domain/sync';
+import { AppText, Badge, Button, Card, ChoiceChips, Dialog, DialogAction, Loading, NotAvailable, Row, Screen, SectionHeader, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
 export function SettingsScreen() {
   const { repos, ownerId, invalidate, storageLabel, persistent } = useServices();
   const units = useUnits();
   const router = useRouter();
+  const sync = useQuery(() => localOnlySyncProvider(Platform.OS).getState()).data;
   const [dialog, setDialog] = useState<{ title: string; message: string; actions: DialogAction[] } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   if (!units) return <Loading />;
@@ -57,7 +59,16 @@ export function SettingsScreen() {
           {storageLabel}
         </AppText>
       </Card>
-      <NotAvailable title="iCloud backup and sync" detail="Not configured. Your data is on this device only. Optional private backup is planned for M4 and needs Apple developer setup first." milestone="M4" />
+      <Card testID="sync-status">
+        <Stack gap={space.xs}>
+          <Row gap={space.sm}>
+            <AppText variant="label">Backup & sync:</AppText>
+            <Badge label={sync ? SYNC_STATUS_LABELS[sync.status] : '…'} tone="warning" />
+          </Row>
+          <AppText variant="caption">{sync?.message ?? ''}</AppText>
+        </Stack>
+      </Card>
+      <NotAvailable title="iCloud backup and sync" detail="Optional private backup is planned for M4 and needs Apple developer setup first." milestone="M4" />
       <Button label="Export all my data (JSON)" variant="secondary" onPress={exportData} testID="export-data" />
       <NotAvailable title="Import from a backup file" detail="Restoring an export arrives with rounds and practice logging in M3." milestone="M3" />
       {message ? <AppText variant="caption">{message}</AppText> : null}

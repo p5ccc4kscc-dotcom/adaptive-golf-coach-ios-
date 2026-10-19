@@ -192,6 +192,68 @@ CREATE TABLE equipment_photo (
 );
 `,
   },
+  {
+    version: 2,
+    name: 'm0_baseline_details_coach_notes_skill_baselines',
+    sql: `
+-- Optional hole-by-hole putts for a past round. NULL putts = not counted on that hole.
+CREATE TABLE baseline_round_hole (
+  id TEXT PRIMARY KEY NOT NULL,
+  baseline_round_id TEXT NOT NULL REFERENCES baseline_round(id) ON DELETE CASCADE,
+  hole_number INTEGER NOT NULL CHECK (hole_number BETWEEN 1 AND 18),
+  putts INTEGER CHECK (putts IS NULL OR (putts BETWEEN 0 AND 10))
+);
+CREATE INDEX idx_round_hole_round ON baseline_round_hole (baseline_round_id);
+
+-- Recent range outcomes entered as baseline. The club is a ClubInstanceID,
+-- or NULL when the golfer chose "Unknown / not entered".
+CREATE TABLE baseline_range_outcome (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  observed_on TEXT NOT NULL,
+  club_instance_id TEXT REFERENCES club_instance(id),
+  club_choice TEXT NOT NULL CHECK (club_choice IN ('bag','other_owned','unknown')),
+  context TEXT NOT NULL,
+  shots INTEGER NOT NULL CHECK (shots >= 1),
+  successes INTEGER CHECK (successes IS NULL OR successes >= 0),
+  success_definition TEXT,
+  notes TEXT,
+  source TEXT NOT NULL CHECK (source IN ('self_reported','imported')),
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE golf_coach_note (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  coach_name TEXT,
+  noted_on TEXT NOT NULL,
+  text TEXT NOT NULL,
+  club_instance_id TEXT REFERENCES club_instance(id),
+  source TEXT NOT NULL CHECK (source IN ('self_reported','coach_confirmed')),
+  created_at TEXT NOT NULL,
+  archived_at TEXT
+);
+
+-- Approved personal baselines per skill/context/version. Rows are superseded, never edited.
+-- Populated by the skills engine (M2).
+CREATE TABLE player_skill_baseline (
+  id TEXT PRIMARY KEY NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,
+  skill_id TEXT NOT NULL,
+  level INTEGER NOT NULL,
+  context TEXT NOT NULL,
+  club_instance_id TEXT REFERENCES club_instance(id),
+  camera_view TEXT CHECK (camera_view IS NULL OR camera_view IN ('dtl','fo')),
+  measurement_version TEXT NOT NULL,
+  provenance TEXT NOT NULL CHECK (provenance IN ('self_reported','coach_confirmed','device_measured','imported')),
+  summary_json TEXT NOT NULL,
+  approved_by TEXT,
+  approval_rationale TEXT,
+  created_at TEXT NOT NULL,
+  superseded_at TEXT
+);
+`,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

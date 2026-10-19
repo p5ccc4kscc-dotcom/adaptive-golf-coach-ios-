@@ -4,7 +4,7 @@ import { UnitPreferences } from '@/data/repositories/profileRepository';
 import { LABELS, MOVEMENT_COMFORT, MovementComfort, PRACTICE_VOLUME, PlayerProfile, PracticeVolume, TRANSPORT, Transport } from '@/domain/profile';
 import { cmToFeetInches, cmToInches, feetInchesToCm, inchesToCm, parseNumberInput } from '@/domain/units';
 import { useServices } from '@/services/AppServices';
-import { AppText, Card, ChoiceChips, Row, Stack, TextField } from '@/ui/components';
+import { AppText, Card, ChoiceChips, Row, Stack, TextField, ToggleRow } from '@/ui/components';
 import { space } from '@/ui/theme';
 
 import { StepFrame, StepProps, noErrors } from '../StepFrame';
@@ -30,11 +30,15 @@ export function ComfortStep({ profile, units, ...props }: StepProps & { profile:
   const [accessibility, setAccessibility] = useState(profile.accessibilityNeeds.value ?? '');
   const [notes, setNotes] = useState(profile.comfortNotes.value ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [heightUnknown, setHeightUnknown] = useState(profile.heightCm.status === 'not_provided');
+  const [wristUnknown, setWristUnknown] = useState(profile.wristToFloorCm.status === 'not_provided');
 
   const save = async () => {
     const e: Record<string, string> = {};
     let heightValue: number | null = null;
-    if (heightUnit === 'cm') {
+    if (heightUnknown) {
+      heightValue = null;
+    } else if (heightUnit === 'cm') {
       const h = parseNumberInput(heightCm);
       if (h !== null) {
         if (Number.isNaN(h) || h < HEIGHT_CM.min || h > HEIGHT_CM.max) e.height = `Enter a height between ${HEIGHT_CM.min} and ${HEIGHT_CM.max} cm, or leave blank.`;
@@ -50,7 +54,7 @@ export function ComfortStep({ profile, units, ...props }: StepProps & { profile:
       }
     }
     let wristValue: number | null = null;
-    const w = parseNumberInput(wrist);
+    const w = wristUnknown ? null : parseNumberInput(wrist);
     if (w !== null) {
       const cm = wristUnit === 'in' ? inchesToCm(w) : w;
       if (Number.isNaN(w) || cm < WRIST_CM.min || cm > WRIST_CM.max) e.wrist = 'That measurement looks outside the usual range. Check the value and unit, or leave blank.';
@@ -90,7 +94,20 @@ export function ComfortStep({ profile, units, ...props }: StepProps & { profile:
             onChange={(v) => v && setHeightUnit(v)}
             testIDPrefix="height-unit"
           />
-          {heightUnit === 'cm' ? (
+          <ToggleRow
+            label="I don't know my height"
+            value={heightUnknown}
+            onChange={(v) => {
+              setHeightUnknown(v);
+              if (v) {
+                setHeightCm('');
+                setFeet('');
+                setInches('');
+              }
+            }}
+            testID="height-unknown"
+          />
+          {heightUnknown ? null : heightUnit === 'cm' ? (
             <TextField label="Height (cm)" value={heightCm} onChangeText={setHeightCm} keyboardType="decimal-pad" error={errors.height} testID="height-cm" />
           ) : (
             <Stack gap={space.xs}>
@@ -120,7 +137,10 @@ export function ComfortStep({ profile, units, ...props }: StepProps & { profile:
             onChange={(v) => v && setWristUnit(v)}
             testIDPrefix="wrist-unit"
           />
-          <TextField label={`Wrist-to-floor (${wristUnit})`} value={wrist} onChangeText={setWrist} keyboardType="decimal-pad" error={errors.wrist} testID="wrist" />
+          <ToggleRow label="I don't know this measurement" value={wristUnknown} onChange={(v) => { setWristUnknown(v); if (v) setWrist(''); }} testID="wrist-unknown" />
+          {wristUnknown ? null : (
+            <TextField label={`Wrist-to-floor (${wristUnit})`} value={wrist} onChangeText={setWrist} keyboardType="decimal-pad" error={errors.wrist} testID="wrist" />
+          )}
         </Stack>
       </Card>
       <ChoiceChips label="Movement comfort" options={options(MOVEMENT_COMFORT, LABELS.movementComfort)} value={movement} onChange={setMovement} testIDPrefix="movement" />

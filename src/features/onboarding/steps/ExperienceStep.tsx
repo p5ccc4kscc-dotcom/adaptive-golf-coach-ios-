@@ -3,9 +3,7 @@ import { useState } from 'react';
 import { UnitPreferences } from '@/data/repositories/profileRepository';
 import {
   ABILITY_LEVELS,
-  AGE_RANGES,
   AbilityLevel,
-  AgeRange,
   LABELS,
   PLAYING_HANDS,
   PRACTICE_TYPES,
@@ -34,7 +32,6 @@ export function ExperienceStep({ profile, units, ...props }: StepProps & { profi
   const [rounds, setRounds] = useState<UsualRounds | null>(profile.usualRounds.value);
   const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>(profile.practiceTypes.value ?? []);
   const [minutes, setMinutes] = useState(strOf(profile.typicalPracticeMinutes.value));
-  const [ageRange, setAgeRange] = useState<AgeRange | null>(profile.ageRange.value);
   const [distanceUnit, setDistanceUnit] = useState(units.distanceUnit);
   const [clubLengthUnit, setClubLengthUnit] = useState(units.clubLengthUnit);
   const [heightUnit, setHeightUnit] = useState(units.heightUnit);
@@ -62,7 +59,6 @@ export function ExperienceStep({ profile, units, ...props }: StepProps & { profi
       usualRounds: { value: rounds },
       practiceTypes: { value: practiceTypes },
       typicalPracticeMinutes: { value: m },
-      ageRange: { value: ageRange },
     });
     await repos.preferences.setUnits(ownerId, { distanceUnit, clubLengthUnit, heightUnit });
     return true;
@@ -108,14 +104,6 @@ export function ExperienceStep({ profile, units, ...props }: StepProps & { profi
       <ChoiceChips label="Usual rounds" options={options(USUAL_ROUNDS, LABELS.usualRounds)} value={rounds} onChange={setRounds} testIDPrefix="rounds" />
       <MultiChips label="Where do you usually practise?" options={options(PRACTICE_TYPES, LABELS.practiceTypes)} value={practiceTypes} onChange={setPracticeTypes} testIDPrefix="practice-type" />
       <TextField label="Typical practice session (minutes, optional)" value={minutes} onChangeText={setMinutes} keyboardType="number-pad" error={errors.minutes} testID="minutes" />
-      <ChoiceChips
-        label="Age range (optional)"
-        helper="Only used to keep practice suggestions comfortable. Not required, never shared."
-        options={options(AGE_RANGES, LABELS.ageRange)}
-        value={ageRange}
-        onChange={setAgeRange}
-        testIDPrefix="age"
-      />
       <Card>
         <Stack gap={space.md}>
           <AppText variant="subheading">Units</AppText>

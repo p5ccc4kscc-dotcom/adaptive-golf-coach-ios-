@@ -18,9 +18,6 @@ export type UsualRounds = (typeof USUAL_ROUNDS)[number];
 export const PRACTICE_TYPES = ['driving_range', 'short_game_area', 'putting_green', 'on_course', 'home_indoor', 'simulator', 'garden_net', 'lessons'] as const;
 export type PracticeType = (typeof PRACTICE_TYPES)[number];
 
-export const AGE_RANGES = ['under_18', '18_29', '30_44', '45_59', '60_74', '75_plus', 'prefer_not_to_say'] as const;
-export type AgeRange = (typeof AGE_RANGES)[number];
-
 export const MOVEMENT_COMFORT = ['full_comfortable', 'some_limits', 'prefer_gentle', 'not_sure'] as const;
 export type MovementComfort = (typeof MOVEMENT_COMFORT)[number];
 
@@ -74,7 +71,6 @@ export interface PlayerProfile {
   usualRounds: Fact<UsualRounds>;
   practiceTypes: Fact<PracticeType[]>;
   typicalPracticeMinutes: Fact<number>;
-  ageRange: Fact<AgeRange>;
   /** Canonical cm; unit records what the golfer entered in. */
   heightCm: Fact<number>;
   wristToFloorCm: Fact<number>;
@@ -91,7 +87,6 @@ export interface PlayerProfile {
   practiceAids: Fact<PracticeAid[]>;
   surfaceAccess: Fact<SurfaceAccess[]>;
   coachName: Fact<string>;
-  coachNotes: Fact<string>;
   upcomingEvents: Fact<string>;
   existingLessonFocus: Fact<string>;
 }
@@ -107,7 +102,6 @@ export const PROFILE_FIELD_KEYS: readonly ProfileFieldKey[] = [
   'usualRounds',
   'practiceTypes',
   'typicalPracticeMinutes',
-  'ageRange',
   'heightCm',
   'wristToFloorCm',
   'movementComfort',
@@ -122,13 +116,12 @@ export const PROFILE_FIELD_KEYS: readonly ProfileFieldKey[] = [
   'practiceAids',
   'surfaceAccess',
   'coachName',
-  'coachNotes',
   'upcomingEvents',
   'existingLessonFocus',
 ];
 
 /** Fields that may contain sensitive personal information; never logged. */
-export const SENSITIVE_FIELDS: readonly ProfileFieldKey[] = ['heightCm', 'wristToFloorCm', 'movementComfort', 'accessibilityNeeds', 'comfortNotes', 'ageRange', 'coachName', 'coachNotes'];
+export const SENSITIVE_FIELDS: readonly ProfileFieldKey[] = ['heightCm', 'wristToFloorCm', 'movementComfort', 'accessibilityNeeds', 'comfortNotes', 'coachName'];
 
 export function emptyProfile(): PlayerProfile {
   const p = {} as Record<ProfileFieldKey, Fact<unknown>>;
@@ -167,15 +160,6 @@ export const LABELS = {
     garden_net: 'Garden net',
     lessons: 'Lessons',
   } satisfies Record<PracticeType, string>,
-  ageRange: {
-    under_18: 'Under 18',
-    '18_29': '18–29',
-    '30_44': '30–44',
-    '45_59': '45–59',
-    '60_74': '60–74',
-    '75_plus': '75+',
-    prefer_not_to_say: 'Prefer not to say',
-  } satisfies Record<AgeRange, string>,
   movementComfort: {
     full_comfortable: 'Comfortable with a full swing',
     some_limits: 'Some movements are limited',
@@ -292,6 +276,8 @@ export interface BaselineRound {
   courseName: string | null;
   source: 'self_reported' | 'imported';
   notes: string | null;
+  /** Putts hole by hole (null = not counted on that hole), or null when only a total was entered. */
+  holePutts: (number | null)[] | null;
   createdAt: string;
 }
 

@@ -88,7 +88,7 @@ export function BuildMyBag() {
       <Card>
         <Stack gap={space.sm}>
           <AppText variant="caption" muted>
-            My Clubs holds everything you own. My Bag is the set you are taking out now. Switching bags never changes your clubs.
+            My Clubs holds everything you own. My Bag is the set you are taking out now. Changes save automatically; “Save Setup…” keeps a named copy (e.g. Everyday, Par-3). Switching bags never changes your clubs.
           </AppText>
           <ChoiceChips
             label="Current bag"
@@ -133,7 +133,14 @@ export function BuildMyBag() {
             })
           }
         />
-        <Button compact variant="secondary" label="Save as new bag…" onPress={() => { setCreating(true); setNewName(''); }} testID="new-preset" />
+        <Button
+          compact
+          variant="secondary"
+          label="Save Setup…"
+          accessibilityHint="Bag changes are saved automatically. This saves the current setup as a new named bag."
+          onPress={() => { setCreating(true); setNewName(''); }}
+          testID="new-preset"
+        />
         <Button compact variant="ghost" label="Rename" onPress={() => { setRenaming(active.name); }} />
         <Button
           compact

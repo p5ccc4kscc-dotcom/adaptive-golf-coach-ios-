@@ -6,6 +6,7 @@ import { useServices } from '@/services/AppServices';
 import { AppText, Card, ChoiceChips, MultiChips, Stack, TextField } from '@/ui/components';
 import { space } from '@/ui/theme';
 
+import { CoachNotesSection } from '../../profile/CoachNotesSection';
 import { StepFrame, StepProps, noErrors } from '../StepFrame';
 import { options, strOf } from './stepUtils';
 
@@ -21,7 +22,6 @@ export function PracticeStep({ profile, ...props }: StepProps & { profile: Playe
   const [aids, setAids] = useState<PracticeAid[]>(profile.practiceAids.value ?? []);
   const [surfaces, setSurfaces] = useState<SurfaceAccess[]>(profile.surfaceAccess.value ?? []);
   const [coachName, setCoachName] = useState(profile.coachName.value ?? '');
-  const [coachNotes, setCoachNotes] = useState(profile.coachNotes.value ?? '');
   const [events, setEvents] = useState(profile.upcomingEvents.value ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -41,7 +41,6 @@ export function PracticeStep({ profile, ...props }: StepProps & { profile: Playe
       practiceAids: { value: aids },
       surfaceAccess: { value: surfaces },
       coachName: { value: coachName },
-      coachNotes: { value: coachNotes },
       upcomingEvents: { value: events },
     });
     return true;
@@ -80,10 +79,10 @@ export function PracticeStep({ profile, ...props }: StepProps & { profile: Playe
       <Card>
         <Stack gap={space.md}>
           <AppText variant="subheading">Coach or PGA professional (optional, private)</AppText>
-          <TextField label="Coach name" value={coachName} onChangeText={setCoachName} maxLength={80} />
-          <TextField label="Notes from your coach" value={coachNotes} onChangeText={setCoachNotes} multiline maxLength={1000} />
+          <TextField label="Coach name" value={coachName} onChangeText={setCoachName} maxLength={80} testID="coach-name" />
         </Stack>
       </Card>
+      <CoachNotesSection defaultCoachName={coachName.trim() || profile.coachName.value} />
       <TextField label="Upcoming rounds or events (optional)" value={events} onChangeText={setEvents} multiline maxLength={500} />
     </StepFrame>
   );

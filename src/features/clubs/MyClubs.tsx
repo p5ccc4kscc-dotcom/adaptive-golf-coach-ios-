@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { View, useWindowDimensions } from 'react-native';
 
 import { bagCountLabel, bagLimitMessage } from '@/domain/bag';
 import { CLUB_CATEGORIES } from '@/domain/clubCatalog';
@@ -8,13 +9,17 @@ import { useQuery, useServices, useUnits } from '@/services/AppServices';
 import { AppText, Button, Card, ChoiceChips, Row, SectionHeader, Stack } from '@/ui/components';
 import { space } from '@/ui/theme';
 
-import { ClubCard } from './ClubCard';
+import { ClubCard, ClubGridTile } from './ClubCard';
 
 export function MyClubs() {
   const { repos, invalidate } = useServices();
   const router = useRouter();
   const units = useUnits();
-  const [view, setView] = useState<'grouped' | 'list'>('grouped');
+  const [view, setView] = useState<'grouped' | 'grid' | 'list'>('grouped');
+  const { width } = useWindowDimensions();
+  const contentWidth = Math.min(width, 720) - space.lg * 2;
+  const columns = contentWidth >= 560 ? 4 : 3;
+  const tileWidth = (contentWidth - space.sm * (columns - 1)) / columns;
   const [message, setMessage] = useState<string | null>(null);
   const data = useQuery(async (s) => {
     const bag = await s.repos.bags.ensureDefault(s.ownerId);
@@ -84,10 +89,12 @@ export function MyClubs() {
             label="View"
             options={[
               { value: 'grouped' as const, label: 'By category' },
+              { value: 'grid' as const, label: 'Grid' },
               { value: 'list' as const, label: 'Bag order list' },
             ]}
             value={view}
             onChange={(v) => v && setView(v)}
+            testIDPrefix="clubs-view"
           />
           {view === 'list'
             ? clubs.map(card)
@@ -97,7 +104,22 @@ export function MyClubs() {
                 return (
                   <Stack key={cat.category} gap={space.sm}>
                     <SectionHeader title={cat.label} />
-                    {inCat.map(card)}
+                    {view === 'grid' ? (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+                        {inCat.map((c) => (
+                          <ClubGridTile
+                            key={c.id}
+                            club={c}
+                            width={tileWidth}
+                            inBag={memberIds.has(c.id)}
+                            onToggleBag={() => toggle(c.id, clubDisplayName(c))}
+                            onPress={() => router.push(`/clubs/${c.id}`)}
+                          />
+                        ))}
+                      </View>
+                    ) : (
+                      inCat.map(card)
+                    )}
                   </Stack>
                 );
               })}

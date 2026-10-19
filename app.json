@@ -12,6 +12,9 @@
       "bundleIdentifier": "com.example.adaptivegolfcoach",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "com.apple.developer.default-data-protection": "NSFileProtectionComplete"
       }
     },
     "android": {

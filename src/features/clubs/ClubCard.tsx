@@ -79,4 +79,43 @@ export function ClubCard({
 const styles = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: 1.5, borderRadius: radius.md, paddingRight: space.md },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md },
+  tile: { borderWidth: 1.5, borderRadius: radius.md, padding: space.sm, alignItems: 'center', gap: space.xs },
 });
+
+/** Compact tile for the grouped visual grid in My Clubs. */
+export function ClubGridTile({
+  club,
+  inBag,
+  onToggleBag,
+  onPress,
+  width,
+}: {
+  club: ClubInstance;
+  inBag: boolean;
+  onToggleBag: () => void;
+  onPress: () => void;
+  width: number;
+}) {
+  const t = useTheme();
+  const type = getClubType(club.typeCode);
+  const name = clubDisplayName(club);
+  return (
+    <View style={[styles.tile, { width, backgroundColor: t.surface, borderColor: inBag ? t.primary : t.border }]} testID={`club-tile-${club.id}`}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${name}. ${clubDetailLine(club)}${inBag ? '. In bag' : ''}`} onPress={onPress} style={{ alignItems: 'center', gap: 2 }}>
+        <ClubArt artwork={type?.artwork ?? 'custom'} badge={clubBadge(club)} size={Math.min(80, width - 16)} putterSubtype={club.putterSubtype} />
+        <AppText variant="label" style={{ textAlign: 'center', fontSize: 13 }}>
+          {name}
+        </AppText>
+        <AppText variant="caption" muted style={{ textAlign: 'center' }}>
+          {club.brand ?? 'Brand not entered'}
+        </AppText>
+      </Pressable>
+      <Checkbox
+        checked={inBag}
+        onPress={onToggleBag}
+        label={inBag ? `Remove ${name}${club.brand ? ` (${club.brand})` : ''} from bag` : `Add ${name}${club.brand ? ` (${club.brand})` : ''} to bag`}
+        testID={`grid-bag-toggle-${club.id}`}
+      />
+    </View>
+  );
+}

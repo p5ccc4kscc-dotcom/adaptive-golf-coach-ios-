@@ -66,6 +66,49 @@ Environment: Linux sandbox, Node 22.22, no Xcode, no iOS simulator. expo.dev / e
 - The spec copy in `docs/spec/MASTER_SPEC_V2.md` is **unverified** (transcribed from chat). The
   repository had no specification.
 
+## Differences from the V2 specification (M0)
+
+Compared against the **unverified** copy in `docs/spec/MASTER_SPEC_V2.md`. These will be
+reconciled again against the owner's original `adaptive_golf_coach_codex_master_prompt_v2.md`
+before merge.
+
+**Approved architecture overrides (owner instruction, not gaps)**
+- React Native + Expo + TypeScript + EAS, instead of SwiftUI/Xcode.
+- SQLite (expo-sqlite / sql.js), instead of SwiftData.
+- Jest + Playwright (+ Maestro, planned), instead of XCTest/XCUITest.
+- Apple Vision is kept, via a custom Expo native module (M1).
+
+**Partial or deferred within M0 scope**
+- My Clubs offers *grouped by category* and *bag-order list* views. The spec also asks for a
+  **visual grid** of owned clubs; only the Club Face Gallery is a grid. Not yet done.
+- **Club photo upload**: data table exists, UI shows “Not available yet” (needs media import, M1).
+- **Baseline import**: round totals only (score, total putts, course). **Per-hole putts** and
+  **recent range outcomes** are not captured yet (M3). Swing videos are “Not available yet” (M1).
+  Club distances are entered per club.
+- `PlayerSkillBaseline` and `GolfCoachNote` models are deferred to M2. The coach's name and notes
+  are stored as profile facts for now.
+- **Starter plan** gives a real, rule-based outline (areas, the golfer's own clubs, reasons).
+  Drill steps and outcome logging arrive with M2.
+- **“Save Setup”** is implemented as **“Save as new bag…”**. Bag changes are saved immediately,
+  so there is no separate save step.
+- **`SyncProvider` states** (`local_only`, `icloud_not_configured`, …) are not implemented as an
+  interface yet. Settings states that sync is not configured (M4).
+- **“Choose another owned club / Unknown”** pickers belong to the video and round screens (M1/M3).
+  Round snapshots of the bag are M3; membership history is already stored to support them.
+- iOS file protection uses the platform default; an explicit `Complete` protection class has not
+  been configured.
+- Dynamic Type and VoiceOver: text scales with the system setting and controls have labels and
+  states, but **no on-device audit** has been done.
+
+**Interpretations to confirm**
+- **Units** default from the phone's region (measurement system). They are shown on the
+  About-your-golf step and in Settings, and can be changed. Treated as a display preference,
+  not a profile fact filled from the device.
+- **Optional age range** is included with a privacy explanation (“keep practice suggestions
+  comfortable”). The spec allows it only with a demonstrated coaching purpose. It can be removed.
+- A **“W”** stamp maps to a “Wedge with other stamp” type, never to a loft. “P” offers
+  pitching wedge *and* putter as candidates. A plus handicap is entered as a negative number.
+
 ## Next three executable steps
 
 1. **Owner:** enable GitHub Pages (Source: GitHub Actions) and merge the M0 branch to `main`.

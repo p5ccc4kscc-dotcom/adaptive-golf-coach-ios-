@@ -69,7 +69,7 @@ Full description, architecture and evidence: [`docs/M1A_SWING_ANALYSER.md`](docs
 | 12 | Compare two recordings | **Built, untested on device** | Timing across views; 2D only within the same view; uncertainty-aware |
 | 13 | Preserve footage and metadata | ✅ data tests | Photos original untouched; every run kept; archive, not delete |
 | 14 | Cancellation, errors, poor files | ✅ macOS | Coded errors; cancel; frame cap; “unusable” shows no results |
-| — | Native module integrates with Expo SDK 57 | ✅ autolinked and pod-installed in CI · ⏳ full `xcodebuild` result pending | `expo prebuild` + `pod install` + `xcodebuild` (Simulator, unsigned) |
+| — | Native module integrates with Expo SDK 57 | ✅ CI (run 39337882406) | `expo prebuild` + `pod install` (GolfVision in `Podfile.lock`) + `xcodebuild` Debug for the iOS Simulator, unsigned: **BUILD SUCCEEDED**, with `GolfVisionModule.swift` compiled (Xcode on macOS 26 runner, 24 min) |
 | — | EAS build for a device | ⏸ **Blocked** | Needs the Apple Developer Program (cost to approve) and the bundle identifier |
 | — | Portrait, landscape and high frame rate | ✅ synthetic clips on macOS / ❓ real iPhone clips | 0/90/180/270° rotations and 240 fps tested |
 
@@ -165,26 +165,29 @@ Each entry gives its status: **Fixed** (done in this update), **Approved overrid
 
 ## Test results
 
-Environment: Linux sandbox, Node 22, no Xcode or iOS simulator. These are local results for the M0.1
-branch; CI results for the same commit are on the M0.1 pull request.
+Environment: Linux sandbox (Node 22) plus GitHub Actions. Results for the M1a branch (which includes
+M0.1).
 
-| Check | Command | Result |
+| Check | Where | Result |
 |---|---|---|
-| TypeScript | `npm run typecheck` | ✅ no errors |
-| ESLint | `npm run lint` | ✅ no problems |
-| Jest (unit, real-SQLite data, IndexedDB guard, native-renderer components) | `npx jest --ci` | ✅ **14 suites, 108 tests** |
-| Browser E2E, root build (Chromium, iPhone 13 default, plus 4 viewport sizes) | `npx playwright test` | ✅ **23/23** |
-| Browser E2E, GitHub Pages sub-path build | `npm run test:e2e:pages` | ✅ **23/23** |
-| Upgrade: merged M0 build → M0.1 build, same origin | `node scripts/check-upgrade.mjs dist-m0 dist-m01` | ✅ **12/12** data checks |
-| iOS JavaScript bundle | `expo export --platform ios` | ✅ Hermes bundle builds (no native binary compiled) |
-| Workflow lint | `actionlint .github/workflows/*.yml` | ✅ |
+| TypeScript, ESLint | sandbox | ✅ no errors, no warnings |
+| Jest: unit, real-SQLite data (incl. v2 → v3 upgrade), IndexedDB guard, native-renderer components | sandbox + CI | ✅ **17 suites, 142 tests** |
+| Browser E2E, root build (Chromium; iPhone 13 + 4 viewport sizes) | sandbox + CI | ✅ **24/24** |
+| Browser E2E, GitHub Pages sub-path build | sandbox + CI | ✅ **24/24** |
+| Upgrade: merged M0 build → this build, same origin (schema v2 → v3) | sandbox + CI | ✅ **12/12** data checks |
+| iOS JavaScript bundle | sandbox | ✅ Hermes bundle builds |
+| Swift core tests, macOS (real AVFoundation + Apple Vision, real photograph) | CI macOS 26 | ✅ **9/9** |
+| Swift core tests, iOS Simulator | CI | ✅ AVFoundation tests pass; 4 Vision tests **skipped** (Vision body pose unsupported on the Simulator) |
+| iOS app build with GolfVision (`prebuild` + `pod install` + `xcodebuild`, Simulator, unsigned) | CI | ✅ BUILD SUCCEEDED |
+| Workflow lint | sandbox | ✅ actionlint |
 
 **Not run:**
-- The M0.1 build on a physical iPhone or iPad. The owner's Safari test covered M0, not M0.1.
-- Safari/WebKit (all browser tests run in Chromium).
-- iOS-simulator Maestro flows (drafted; need an Expo account, cost unconfirmed).
-- A native EAS build, including the file-protection entitlement and the native display name and icon.
-- An on-device VoiceOver and Dynamic Type audit.
+- Anything on a physical iPhone or iPad. That includes the Photos import, the analyser on real
+  swings, performance, and the native display name and icon.
+- Safari/WebKit.
+- The app launched on a Simulator.
+- An EAS build.
+- The VoiceOver and Dynamic Type audit.
 
 ## Known limitations
 
@@ -198,9 +201,11 @@ branch; CI results for the same commit are on the M0.1 pull request.
 
 ## Next steps
 
-1. **Owner:** review the M0.1 pull request. After merging, open the Pages address in Safari and check
-   the layout on your iPhone. Approve or choose the bundle identifier (`docs/BRAND.md`).
-2. **M1a** (separate pull request): the Apple Vision native module, the swing-analysis data model and
-   the analyser screens, with a native compile check in CI.
-3. **M1a on the iPhone:** needs the Apple Developer Program, then an EAS development build. The owner
-   installs it and runs it on their own face-on and down-the-line clips.
+1. **Owner:** review PR #2 (M0.1) and merge it if you approve; then review PR #3 (M1a).
+2. **Owner decisions:**
+   - approve or decline the Apple Developer Program (US$99 a year, recurring), which is needed to
+     install the iPhone app;
+   - choose the bundle identifier (`docs/BRAND.md`).
+3. **After that:** I set up the TestFlight build. You run the device test plan in
+   `docs/M1A_SWING_ANALYSER.md` with your own clips, and M1a is accepted or fixed from your
+   results. M1b does not start before you accept M1a.

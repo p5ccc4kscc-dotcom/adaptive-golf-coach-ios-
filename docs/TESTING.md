@@ -9,6 +9,8 @@
 | Component tests (`tests/ui`) | Jest + React Native Testing Library (`jest-expo/ios` preset) | sandbox + CI | Native-renderer accessibility labels/states for chips and the club gallery | Real device rendering |
 | Browser E2E (`e2e/`) | Playwright, Chromium, iPhone 13 viewport, against the exported web build | sandbox + CI | Full user journeys through the real screens, including reload persistence | Safari/WebKit, iOS, native modules |
 | iOS simulator E2E (`.maestro/`, `.eas/workflows/e2e-ios-simulator.yml`) | Maestro on EAS Workflows | **not yet run** | Would prove the native iOS build launches and core flows work | Physical-device behaviour, camera/Photos |
+| Layout checks (`e2e/m01.spec.ts`) | Playwright at 375×667, 390×844, 430×932, 667×375 | sandbox + CI | No horizontal overflow, every control ≥ 44×44, last content clear of the tab bar or bottom inset, compact headers, Back after a reload | Safari's real toolbar behaviour, Dynamic Type |
+| Upgrade check (`scripts/check-upgrade.mjs`, CI job “Upgrade keeps saved data”) | Playwright + two web builds on one origin | sandbox + CI | Data entered in the `main` build is still present and unchanged in this commit's build (as on a Pages redeploy) | Native app upgrades (the SQLite file on iPhone) |
 | Physical iPhone checks | You, following a checklist per build | from M1 | Real device behaviour | — |
 
 ## EAS Workflows iOS simulator tests — investigation (2026-10-19)
@@ -26,9 +28,12 @@
   repo under project settings → GitHub, then run the workflow manually. Check
   **expo.dev → Billing** before and after the first run.
 
-## Results for M0 (this commit)
+## Results
 
 See `IMPLEMENTATION_STATUS.md` → “Test results”.
+
+The upgrade check drives the *older* build's screens by their test IDs. If a later change renames a
+test ID used there, update the script in the same pull request; don't delete the check.
 
 ## CI incident: intermittent browser-test failures (2026-10-19)
 

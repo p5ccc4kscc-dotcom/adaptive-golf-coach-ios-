@@ -1,23 +1,72 @@
-# Implementation status
+# Implementation status — BadGolfer
 
-_Last updated: 2026-10-19 (M0 delivery, after spec reconciliation and the CI fix)._
+_Last updated: 2026-10-19 (M0 accepted; M0.1 branding and interface refinements in review)._
+
+Product name: **BadGolfer** (formerly the working name “Adaptive Golf Coach”; see [`docs/BRAND.md`](docs/BRAND.md)).
 Legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED EXTERNALLY**
 
 Authoritative spec: [`docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md`](docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md)
 (owner's original). Architecture overrides: [`docs/spec/PROJECT_INSTRUCTIONS.md`](docs/spec/PROJECT_INSTRUCTIONS.md).
 
+## What has been validated, and where
+
+| Area | Status | Evidence |
+|---|---|---|
+| **M0 browser functionality** | **User-tested and accepted** (Safari on the owner's iPhone, 2026-10-19) | Owner's manual test, see “M0 formal acceptance” below; automated browser tests in Chromium |
+| **Native iOS app** | **Not validated.** No native binary has been built or installed. | Only the iOS JavaScript bundle has been compiled (`expo export --platform ios`). Passing browser tests does **not** show that the native app works. |
+| **Cloud synchronisation / backup** | **Not implemented** (planned, M4) | Settings shows “Local only · Nothing is backed up or synced” |
+| **Video swing analysis** | **Not implemented** (M1a in progress on a separate branch) | Analyse tab shows “Not available yet” |
+
+## M0 formal acceptance (2026-10-19)
+
+The owner tested the GitHub Pages browser preview in **Safari on their physical iPhone** and accepted
+M0 **for the Safari browser-preview scope**. These passed the owner's manual testing:
+
+- personalised onboarding completed;
+- all 17 of the owner's own clubs appeared correctly. The extra driving/utility irons were added
+  deliberately and are not a catalogue error;
+- individual Brand and Model fields could be edited and saved;
+- the 14-club competition bag limit worked;
+- club swapping and selection worked;
+- different bag setups worked;
+- data persisted after closing and reopening Safari.
+
+This acceptance covers the browser preview only. It does not cover the native iPhone app, cloud
+sync or swing analysis (see the table above).
+
 ## Milestones
 
 | Milestone | Status | Notes / blocker and owner action |
 |---|---|---|
-| **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **DONE** in the browser build (every acceptance criterion verified below) / **PARTIAL** for native iOS | No native iOS binary has been built yet; that needs an Expo account (free) for EAS Build, and Apple Developer membership to install on a phone. The iOS JavaScript bundle does build (`expo export --platform ios`). |
-| Browser preview (GitHub Pages) | **BLOCKED EXTERNALLY** | Owner: Settings → Pages → Source **GitHub Actions**, then merge PR #1. The workflow is ready and passes `actionlint`; the identical sub-path build passes all browser tests. Not yet deployed. |
-| **M1** Offline video analyser (Apple Vision native module) | **NOT STARTED** | Not started, by instruction, until the owner has tested and approved M0. Needs the Apple Developer Program (to run on the iPhone) and owner-supplied swing clips. |
+| **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **ACCEPTED** (browser preview) / native iOS **not validated** | Accepted by the owner on 2026-10-19 after testing in Safari on iPhone. No native iOS binary has been built yet. |
+| Browser preview (GitHub Pages) | **DONE (live)** | https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/ — first deployed on the PR #1 merge (run 39327682405) and used by the owner for the M0 test. |
+| **M0.1** BadGolfer branding and interface refinements | **IN REVIEW** (branch `claude/m0.1-badgolfer`) | See “M0.1” below. Not merged until the owner approves. |
+| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN PROGRESS** (separate branch and PR) | Authorised on 2026-10-19. Installing on the iPhone needs the Apple Developer Program, and validation needs the owner's swing clips. |
+| **M1b** Remaining analyser features | NOT STARTED | Not to start until the owner accepts M1a. |
 | **M2** Curriculum, competency and refresher engine | NOT STARTED | The `player_skill_baseline` model and repository exist (supersede-only); the Learn tab shows “Not available yet”. |
 | **M3** Rounds, practice logging, trends, import | NOT STARTED | M0 stores self-reported baseline rounds (totals or hole-by-hole putts) and range sessions. JSON export is done; import is not. |
 | **M4** Accounts / sync / video backup | NOT STARTED | `SyncProvider` states exist (local only). The provider decision (iCloud vs. Supabase) is needed from the owner. |
 | **M5** Live camera, club tracking | NOT STARTED | — |
 | **M6** Product readiness | NOT STARTED | `docs/RELEASE_CHECKLIST.md` |
+
+## M0.1 — BadGolfer branding and interface refinements (in review)
+
+| Requirement | Result | Evidence |
+|---|---|---|
+| App display name and Home Screen name **BadGolfer** | ✅ in config | `app.json` `name` + `CFBundleDisplayName`; web title, `apple-mobile-web-app-title`, manifest. Native name not yet seen on a device (no build yet). |
+| Original app icon and visual identity | ✅ | `assets/brand/*.svg`, rendered by `npm run brand:icons`; mark, wordmark, tab icons (`docs/BRAND.md`) |
+| Onboarding, dashboard, headings and messages renamed | ✅ | No “Adaptive Golf Coach” remains in UI code; E2E checks title and wordmark |
+| Repository name and history kept | ✅ | Unchanged |
+| Permanent bundle identifier | ⏸ **Proposed, awaiting approval** | `docs/BRAND.md` recommends `com.badgolfer.app` (if you control `badgolfer.com`). The placeholder is unchanged. |
+| Trademark, domain and App Store check | ⚠️ **Preliminary only** | Web searches found an abandoned US “BADGOLFER” filing, and a 2022 US “BAD GOLFER” shirt filing with unknown current status. **Not legal clearance** (`docs/BRAND.md`). |
+| A. Hand-specific slice, hook, push and pull wording | ✅ | `challengeLabel()` in `src/domain/profile.ts`. Right-handed and left-handed golfers see only their own direction; unknown, not sure and prefer-not-to-say get neutral wording that explains both, and nothing is guessed. Used in Goals, the profile summary and the starter-plan reasons. 6 unit tests plus E2E (right → left → unknown) |
+| B. Header height, clipping, safe areas, tab bar, 44 pt targets, small screens | ✅ in Chromium | Tab screens: one compact in-screen title (the second navigator header is removed). Web stack header is 48 px (was 64) with a 44 pt Back that works after a reload. `viewport-fit=cover` with safe-area padding; `100dvh` root so Safari's toolbars cannot push the tab bar off-screen. Compact buttons are 44 pt (were 40); checkboxes have a 44 pt target. E2E at 375×667, 390×844, 430×932 and 667×375 checks: no horizontal overflow, every control ≥ 44×44, the last item scrolls clear of the tab bar or bottom inset, and the header height. **Not verified in Safari itself.** |
+| C. Information density (Review, Today) | ✅ | Today is a dashboard: greeting and date, setup progress, the session outline with “Why these…” details, bag and club tiles, top goals, and a “Coming next” card. Review groups unanswered fields on one line per section instead of a badge per field. No information was removed; details are one tap away (`Disclosure`). |
+| D. Accurate feature descriptions | ✅ | A single registry, `src/domain/features.ts` (available / experimental / planned + milestone), shown on Today and in Settings. Welcome copy corrected: swing analysis is *planned* for the iPhone app; cloud backup is *not available yet*. |
+| E. Data preservation | ✅ | No schema change in M0.1. Storage identifiers are pinned (`storageIds.ts` plus a unit test). **Upgrade check:** fictional data entered in the merged M0 build (profile, goal, 3 clubs with brand and model, bag membership, a second bag setup, a baseline round) was all present after switching to the M0.1 build on the same origin: 12/12 checks (`scripts/check-upgrade.mjs`). This now runs in CI on every push. |
+| F. Club cards and bags | ✅ | Compact cards: Brand · Model on their own line (or “Brand and model not entered”), loft and carry below, an “In bag” badge and tinted card for bag members. Bag setups show their counts (“My Bag · 9/14”), with help folded into “How bags work”. The 14-club rule and history rules are unchanged (same tests). |
+
+Before/after screenshots (Chromium, 375×667, fictional data): [`docs/screenshots/m0.1`](docs/screenshots/m0.1).
 
 ## M0 acceptance criteria (spec §10)
 
@@ -87,40 +136,42 @@ Each entry gives its status: **Fixed** (done in this update), **Approved overrid
 
 ## Test results
 
-Environment: Linux sandbox, Node 22, no Xcode or iOS simulator. These are local results for this commit;
-the CI results for the same commit are on PR #1.
+Environment: Linux sandbox, Node 22, no Xcode or iOS simulator. These are local results for the M0.1
+branch; CI results for the same commit are on the M0.1 pull request.
 
 | Check | Command | Result |
 |---|---|---|
 | TypeScript | `npm run typecheck` | ✅ no errors |
 | ESLint | `npm run lint` | ✅ no problems |
-| Jest (unit, real-SQLite data, IndexedDB guard, native-renderer components) | `npx jest --ci` | ✅ **12 suites, 99 tests** |
-| Browser E2E, root build (Chromium, iPhone 13 viewport) | `npx playwright test` | ✅ **12/12** |
-| Browser E2E, GitHub Pages sub-path build | `npm run test:e2e:pages` | ✅ **12/12**, and **36/36** with `--repeat-each=3` |
+| Jest (unit, real-SQLite data, IndexedDB guard, native-renderer components) | `npx jest --ci` | ✅ **14 suites, 108 tests** |
+| Browser E2E, root build (Chromium, iPhone 13 default, plus 4 viewport sizes) | `npx playwright test` | ✅ **23/23** |
+| Browser E2E, GitHub Pages sub-path build | `npm run test:e2e:pages` | ✅ **23/23** |
+| Upgrade: merged M0 build → M0.1 build, same origin | `node scripts/check-upgrade.mjs dist-m0 dist-m01` | ✅ **12/12** data checks |
 | iOS JavaScript bundle | `expo export --platform ios` | ✅ Hermes bundle builds (no native binary compiled) |
 | Workflow lint | `actionlint .github/workflows/*.yml` | ✅ |
 
 **Not run:**
-- Physical iPhone or iPad.
-- Safari/WebKit.
+- The M0.1 build on a physical iPhone or iPad. The owner's Safari test covered M0, not M0.1.
+- Safari/WebKit (all browser tests run in Chromium).
 - iOS-simulator Maestro flows (drafted; need an Expo account, cost unconfirmed).
-- Native EAS build, including the file-protection entitlement.
-- On-device VoiceOver and Dynamic Type audit.
+- A native EAS build, including the file-protection entitlement and the native display name and icon.
+- An on-device VoiceOver and Dynamic Type audit.
 
-## Known limitations (M0)
+## Known limitations
 
 - The browser preview stores data in that browser only. Clearing Safari website data deletes it.
+  A Home Screen web app has its own separate storage (`docs/BUILD_AND_RUN.md`).
 - If two tabs are used, the stale one stops and asks for a reload (by design).
 - The browser preview can never run the Apple Vision analyser.
-- The app icon and splash are Expo's defaults. The bundle ID `com.example.adaptivegolfcoach` is a placeholder.
-- Tab-bar icons are text glyphs.
+- The bundle ID `com.example.adaptivegolfcoach` is still a placeholder, pending owner approval.
+- The tagline “Get Better.” is a proposal, not approved.
+- The name “BadGolfer” has had only a preliminary web check, not trademark clearance.
 
-## Next three executable steps (after owner approval of M0)
+## Next steps
 
-1. **Owner:** enable GitHub Pages (Source: GitHub Actions), merge PR #1, test M0 in Safari. I then
-   verify the deployment logs and the live URL.
-2. **M1a:** scaffold the local Expo native module `modules/golf-vision` (Swift: AVFoundation probe +
-   Vision 2D pose with real timestamps, progress and cancel) behind the TypeScript `PoseEstimator`
-   interface, with orientation, missingness and smoothing tests written first.
-3. **M1a build:** run an EAS development build once Apple Developer membership is in place. The owner
-   installs it and runs the prototype on their own face-on and down-the-line clips.
+1. **Owner:** review the M0.1 pull request. After merging, open the Pages address in Safari and check
+   the layout on your iPhone. Approve or choose the bundle identifier (`docs/BRAND.md`).
+2. **M1a** (separate pull request): the Apple Vision native module, the swing-analysis data model and
+   the analyser screens, with a native compile check in CI.
+3. **M1a on the iPhone:** needs the Apple Developer Program, then an EAS development build. The owner
+   installs it and runs it on their own face-on and down-the-line clips.

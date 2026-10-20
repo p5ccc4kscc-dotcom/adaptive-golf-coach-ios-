@@ -8,6 +8,7 @@ import { DistanceUnit, HeightUnit, LengthUnit } from '@/domain/units';
 import { useQuery, useServices, useUnits } from '@/services/AppServices';
 import { localOnlySyncProvider, SYNC_STATUS_LABELS } from '@/domain/sync';
 import { AppText, Badge, Button, Card, ChoiceChips, Dialog, DialogAction, Loading, NotAvailable, Row, Screen, SectionHeader, Stack } from '@/ui/components';
+import { FeatureStatusList } from '@/ui/FeatureStatusList';
 import { space } from '@/ui/theme';
 
 export function SettingsScreen() {
@@ -32,12 +33,12 @@ export function SettingsScreen() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `adaptive-golf-coach-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `badgolfer-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setMessage('Export downloaded.');
     } else {
-      await Share.share({ message: text, title: 'Adaptive Golf Coach export' });
+      await Share.share({ message: text, title: 'BadGolfer export' });
     }
   };
 
@@ -68,7 +69,15 @@ export function SettingsScreen() {
           <AppText variant="caption">{sync?.message ?? ''}</AppText>
         </Stack>
       </Card>
-      <NotAvailable title="iCloud backup and sync" detail="Optional private backup is planned for M4 and needs Apple developer setup first." milestone="M4" />
+      <NotAvailable title="Private cloud backup and sync" detail="Not active. Planned for M4; until then, Export keeps a copy." milestone="M4" />
+      {Platform.OS === 'web' ? (
+        <Card tone="warning" testID="home-screen-note">
+          <AppText variant="caption">
+            Browser preview: data lives in this browser only. If you add BadGolfer to your Home Screen and iOS opens it as a web app, that copy has its own,
+            separate storage and will start empty. Your Safari data is not lost; open the preview in Safari to see it.
+          </AppText>
+        </Card>
+      ) : null}
       <Button label="Export all my data (JSON)" variant="secondary" onPress={exportData} testID="export-data" />
       <NotAvailable title="Import from a backup file" detail="Restoring an export arrives with rounds and practice logging in M3." milestone="M3" />
       {message ? <AppText variant="caption">{message}</AppText> : null}
@@ -79,7 +88,7 @@ export function SettingsScreen() {
         onPress={() =>
           setDialog({
             title: 'Delete all your data?',
-            message: 'This permanently removes your profile, goals, clubs, bags, distances and past rounds from this device. It cannot be undone. Export first if you want a copy.',
+            message: 'This permanently removes your profile, goals, clubs, bags, distances, past rounds, range sessions and coach notes from this device. It cannot be undone. Export first if you want a copy.',
             actions: [
               {
                 label: 'Delete everything',
@@ -98,10 +107,15 @@ export function SettingsScreen() {
         }
       />
 
+      <SectionHeader title="What works today" />
+      <Card>
+        <FeatureStatusList testID="feature-status" />
+      </Card>
+
       <SectionHeader title="About" />
       <Card>
         <Stack gap={space.xs}>
-          <AppText variant="caption">Adaptive Golf Coach (working name) · version {Constants.expoConfig?.version ?? 'unknown'} · data schema v{LATEST_SCHEMA_VERSION}</AppText>
+          <AppText variant="caption">BadGolfer · version {Constants.expoConfig?.version ?? 'unknown'} · data schema v{LATEST_SCHEMA_VERSION}</AppText>
           <AppText variant="caption" muted>
             Not affiliated with or endorsed by any golf organisation, coach, equipment maker or Apple. Coaching here supports, and does not replace, a qualified professional.
           </AppText>

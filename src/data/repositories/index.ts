@@ -4,6 +4,7 @@ import { RepoContext, nowIso } from './context';
 import { coachNoteRepository, rangeOutcomeRepository, skillBaselineRepository } from './baselineDetailRepository';
 import { clubCatalogRepository, ownerRepository } from './ownerRepository';
 import { baselineRepository, goalRepository, onboardingRepository, preferenceRepository, profileRepository } from './profileRepository';
+import { STORAGE_IDS } from '../db/storageIds';
 
 export type { RepoContext } from './context';
 
@@ -26,7 +27,7 @@ const OWNER_TABLES = [
   'equipment_photo',
 ] as const;
 
-export const EXPORT_FORMAT = 'adaptive-golf-coach-export';
+export const EXPORT_FORMAT = STORAGE_IDS.exportFormat;
 export const EXPORT_FORMAT_VERSION = 2;
 
 export function createRepositories(ctx: RepoContext) {

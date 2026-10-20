@@ -1,6 +1,6 @@
 import { ClubInstance, clubDisplayName, effectiveCategory } from './clubs';
 import { ClubCategory } from './clubCatalog';
-import { Challenge, LABELS, PlayerProfile } from './profile';
+import { Challenge, PlayerProfile, challengeLabel } from './profile';
 
 /**
  * Builds the outline of a 10–15 minute *diagnostic* starter session from the
@@ -104,6 +104,9 @@ const NEEDS_TEXT: Record<StarterArea, string> = {
   fundamentals: '',
 };
 
+/** Always the last note: the outline never claims a fault. */
+export const DIAGNOSTIC_NOTE = 'This is a diagnostic look, not a diagnosis. BadGolfer will not assume any fault until you log real outcomes.';
+
 /** sortedBag must already be in bag order (longest to shortest). */
 export function buildStarterPlanOutline(profile: PlayerProfile, sortedBag: ClubInstance[]): StarterPlanOutline {
   const reported = (profile.challenges.value ?? []).filter((c) => c !== 'unsure');
@@ -111,7 +114,7 @@ export function buildStarterPlanOutline(profile: PlayerProfile, sortedBag: ClubI
   for (const challenge of reported) {
     const area = AREA_FOR_CHALLENGE[challenge];
     if (area && !areas.some((a) => a.area === area)) {
-      areas.push({ area, reason: `You reported: ${LABELS.challenges[challenge]}.` });
+      areas.push({ area, reason: `You reported: ${challengeLabel(challenge, profile.playingHand.value)}.` });
     }
   }
   const generic: StarterArea[] = ['putting', 'chipping', 'start_line'];
@@ -158,7 +161,7 @@ export function buildStarterPlanOutline(profile: PlayerProfile, sortedBag: ClubI
   if (profile.movementComfort.value === 'some_limits' || profile.movementComfort.value === 'prefer_gentle') {
     notes.push('Keep every swing within what feels comfortable. Stop if anything hurts.');
   }
-  notes.push('This is a diagnostic look, not a diagnosis. The app will not assume any fault until you log real outcomes.');
+  notes.push(DIAGNOSTIC_NOTE);
 
   return { items, unavailable, notes, totalMinutes: items.reduce((s, i) => s + i.minutes, 0) };
 }

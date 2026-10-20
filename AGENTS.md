@@ -1,6 +1,7 @@
 # Rules for coding agents working on this repository
 
-This is an Expo / React Native / TypeScript app for iPhone, built in the cloud with EAS. The
+This is **BadGolfer** (formerly the working name “Adaptive Golf Coach”), an Expo / React Native /
+TypeScript app for iPhone, built in the cloud with EAS. The
 owner has no Mac. Read `docs/spec/README.md` first. The functional spec is
 `docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md` (authoritative original), and the architecture overrides are in
 `docs/spec/PROJECT_INSTRUCTIONS.md`.
@@ -19,6 +20,10 @@ owner has no Mac. Read `docs/spec/README.md` first. The functional spec is
   location (spec §4.4 Tier C).
 - **History is never rewritten.** Profile facts are superseded, not overwritten. Clubs with
   history are archived, not deleted. Bag membership keeps removed rows.
+- **Never rename storage identifiers** (`src/data/db/storageIds.ts`); they keep the old working name
+  on purpose. The iOS bundle identifier changes only with owner approval (`docs/BRAND.md`).
+- Product copy uses `src/domain/features.ts` for feature status; never describe a planned feature as
+  available.
 - My Clubs (owned) is separate from My Bag (preset membership). The 14-club cap applies only
   to `competition` presets.
 

@@ -14,7 +14,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, space, useTheme } from './theme';
 
@@ -25,8 +25,8 @@ import { radius, space, useTheme } from './theme';
 type TextVariant = 'title' | 'heading' | 'subheading' | 'body' | 'caption' | 'label';
 
 const textSizes: Record<TextVariant, TextStyle> = {
-  title: { fontSize: 28, fontWeight: '700', lineHeight: 34 },
-  heading: { fontSize: 20, fontWeight: '700', lineHeight: 26 },
+  title: { fontSize: 26, fontWeight: '700', lineHeight: 32 },
+  heading: { fontSize: 19, fontWeight: '700', lineHeight: 24 },
   subheading: { fontSize: 17, fontWeight: '600', lineHeight: 22 },
   body: { fontSize: 16, lineHeight: 22 },
   caption: { fontSize: 13, lineHeight: 18 },
@@ -40,6 +40,7 @@ export function AppText({
   children,
   accessibilityRole,
   testID,
+  numberOfLines,
 }: {
   variant?: TextVariant;
   muted?: boolean;
@@ -47,11 +48,13 @@ export function AppText({
   children: ReactNode;
   accessibilityRole?: 'header' | 'text';
   testID?: string;
+  numberOfLines?: number;
 }) {
   const t = useTheme();
   return (
     <Text
       testID={testID}
+      numberOfLines={numberOfLines}
       accessibilityRole={accessibilityRole ?? (variant === 'title' || variant === 'heading' ? 'header' : undefined)}
       style={[textSizes[variant], { color: muted ? t.textMuted : t.text }, style]}
     >
@@ -64,19 +67,124 @@ export function AppText({
 // Layout
 // ---------------------------------------------------------------------------
 
-export function Screen({ children, scroll = true, testID }: { children: ReactNode; scroll?: boolean; testID?: string }) {
+/**
+ * A screen body. Tab screens (`tab`) draw their own compact title under the
+ * top safe area, because the tab navigator's header is hidden; the tab bar
+ * handles the bottom inset. Stack screens sit under the navigation header and
+ * pad their scrolling content by the bottom inset (home indicator) so the last
+ * item can always be scrolled clear of it.
+ */
+export function Screen({
+  children,
+  scroll = true,
+  testID,
+  tab,
+  title,
+  subtitle,
+  headerRight,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  testID?: string;
+  tab?: boolean;
+  title?: string;
+  subtitle?: string;
+  headerRight?: ReactNode;
+}) {
   const t = useTheme();
-  const content = <View style={styles.screenInner}>{children}</View>;
+  const insets = useSafeAreaInsets();
+  const header = title ? (
+    <View style={styles.screenHeader} testID="screen-header">
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText variant="title">{title}</AppText>
+        {subtitle ? (
+          <AppText variant="caption" muted>
+            {subtitle}
+          </AppText>
+        ) : null}
+      </View>
+      {headerRight}
+    </View>
+  ) : null;
+  const content = (
+    <View style={styles.screenInner}>
+      {header}
+      {children}
+    </View>
+  );
+  const bottomPad = tab ? space.xl : space.xl + insets.bottom;
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: t.bg }} testID={testID}>
+    <SafeAreaView edges={tab ? ['top', 'left', 'right'] : ['left', 'right']} style={{ flex: 1, backgroundColor: t.bg }} testID={testID}>
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.screenScroll} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ paddingBottom: bottomPad }} keyboardShouldPersistTaps="handled" testID={testID ? `${testID}-scroll` : undefined}>
           {content}
         </ScrollView>
       ) : (
-        content
+        <View style={{ flex: 1, paddingBottom: tab ? 0 : insets.bottom }}>{content}</View>
       )}
     </SafeAreaView>
+  );
+}
+
+/**
+ * A summary line that reveals more detail on demand. Keeps screens short
+ * without hiding information: the details stay one tap away.
+ */
+export function Disclosure({
+  label,
+  openLabel,
+  children,
+  testID,
+  initiallyOpen = false,
+}: {
+  label: string;
+  openLabel?: string;
+  children: ReactNode;
+  testID?: string;
+  initiallyOpen?: boolean;
+}) {
+  const t = useTheme();
+  const [open, setOpen] = useState(initiallyOpen);
+  return (
+    <View style={{ gap: space.sm }}>
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        accessibilityLabel={open ? (openLabel ?? label) : label}
+        onPress={() => setOpen(!open)}
+        style={styles.disclosure}
+      >
+        <Text style={{ color: t.primary, fontSize: 15, fontWeight: '600', flex: 1 }}>{open ? (openLabel ?? label) : label}</Text>
+        <Text style={{ color: t.primary, fontSize: 15, fontWeight: '700' }} accessibilityElementsHidden importantForAccessibility="no">
+          {open ? '▴' : '▾'}
+        </Text>
+      </Pressable>
+      {open ? <View style={{ gap: space.sm }}>{children}</View> : null}
+    </View>
+  );
+}
+
+/** A compact figure with a caption, e.g. "9 / 14 · in bag". Tappable when onPress is given. */
+export function StatTile({ value, label, onPress, testID, accessibilityLabel }: { value: string; label: string; onPress?: () => void; testID?: string; accessibilityLabel?: string }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel ?? `${label}: ${value}`}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [styles.stat, { backgroundColor: t.surface, borderColor: t.border, opacity: pressed ? 0.85 : 1 }]}
+    >
+      <Text style={{ color: t.text, fontSize: 20, fontWeight: '700' }} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text style={{ color: t.textMuted, fontSize: 13 }} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -384,6 +492,7 @@ export function ToggleRow({ label, value, onChange, helper, testID, accessibilit
 
 export function Checkbox({ checked, onPress, label, testID, disabled }: { checked: boolean; onPress: () => void; label: string; testID?: string; disabled?: boolean }) {
   const t = useTheme();
+  // The visible box is 30 pt; the pressable area around it is 44 pt (hitSlop is not honoured on the web).
   return (
     <Pressable
       testID={testID}
@@ -393,10 +502,11 @@ export function Checkbox({ checked, onPress, label, testID, disabled }: { checke
       accessibilityLabel={label}
       onPress={onPress}
       disabled={disabled}
-      hitSlop={8}
-      style={[styles.checkbox, { borderColor: checked ? t.primary : t.border, backgroundColor: checked ? t.primary : t.surface, opacity: disabled ? 0.5 : 1 }]}
+      style={[styles.checkboxTarget, { opacity: disabled ? 0.5 : 1 }]}
     >
-      {checked ? <Text style={{ color: t.onPrimary, fontWeight: '800', fontSize: 16 }}>✓</Text> : null}
+      <View style={[styles.checkbox, { borderColor: checked ? t.primary : t.border, backgroundColor: checked ? t.primary : t.surface }]}>
+        {checked ? <Text style={{ color: t.onPrimary, fontWeight: '800', fontSize: 16 }}>✓</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -509,9 +619,11 @@ export function Dialog({ visible, title, message, actions, onDismiss }: { visibl
 }
 
 const styles = StyleSheet.create({
-  screenScroll: { paddingBottom: space.xxl },
-  screenInner: { padding: space.lg, gap: space.lg, width: '100%', maxWidth: 720, alignSelf: 'center' },
-  card: { borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: space.lg },
+  screenInner: { paddingHorizontal: space.lg, paddingTop: space.md, gap: space.md, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  screenHeader: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingTop: space.xs },
+  card: { borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: space.md + 2 },
+  disclosure: { flexDirection: 'row', alignItems: 'center', minHeight: 44, gap: space.sm },
+  stat: { flex: 1, minWidth: 96, minHeight: 64, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: space.md, paddingVertical: space.sm, justifyContent: 'center', gap: 2 },
   button: {
     minHeight: 48,
     borderRadius: radius.md,
@@ -520,13 +632,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonCompact: { minHeight: 40, paddingHorizontal: space.md },
+  buttonCompact: { minHeight: 44, paddingHorizontal: space.md },
   buttonText: { fontSize: 16, fontWeight: '600', textAlign: 'center' },
   input: { minHeight: 48, borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 16 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   chip: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, minHeight: 44, justifyContent: 'center' },
-  checkbox: { width: 32, height: 32, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, padding: space.lg },
+  checkboxTarget: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  checkbox: { width: 30, height: 30, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, paddingHorizontal: space.lg, paddingVertical: space.md, minHeight: 56 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: space.lg },
   dialog: { width: '100%', maxWidth: 420, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: space.xl },
 });

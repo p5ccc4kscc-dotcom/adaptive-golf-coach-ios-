@@ -48,3 +48,5 @@ yarn-error.*
 /test-results/
 /playwright-report/
 /e2e/screenshots/
+/dist-*/
+/scratch-tmp/

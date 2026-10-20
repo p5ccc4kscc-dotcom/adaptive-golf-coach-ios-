@@ -26,7 +26,7 @@ jobs:
       - run: npm run lint
       - run: npm test -- --ci
       - name: Export web preview
-        run: npx expo export --platform web
+        run: npm run export:web
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Browser end-to-end tests (Chromium, iPhone-sized viewport)
@@ -34,10 +34,7 @@ jobs:
       - name: Export GitHub Pages-style build (sub-path)
         run: |
           rm -rf dist
-          npx expo export --platform web
-          cp dist/index.html dist/404.html
-        env:
-          EXPO_BASE_URL: /adaptive-golf-coach-ios-
+          npm run export:pages
       - name: Browser end-to-end tests under the Pages sub-path
         run: npx playwright test --output test-results/pages
         env:
@@ -58,3 +55,30 @@ jobs:
           name: web-preview-dist
           path: dist
           retention-days: 7
+
+  upgrade:
+    name: Upgrade keeps saved data (main build → this commit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build this commit (Pages sub-path)
+        run: npm run export:pages && mv dist dist-new
+      - name: Build the current main branch (Pages sub-path)
+        run: |
+          git worktree add ../base origin/main
+          cd ../base
+          npm ci
+          npm run export:pages
+          mv dist "$GITHUB_WORKSPACE/dist-old"
+      - name: Enter fictional data in the main build, then open it with this commit's build
+        run: node scripts/check-upgrade.mjs dist-old dist-new

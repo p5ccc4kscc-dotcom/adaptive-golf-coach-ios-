@@ -180,10 +180,10 @@ export const LABELS = {
     not_sure: 'Not sure',
   } satisfies Record<Transport, string>,
   challenges: {
-    slice_right: 'Slice — curves right (right-handed) / left (left-handed)',
-    hook_left: 'Hook — curves left (right-handed) / right (left-handed)',
-    push: 'Push — starts right (right-handed) / left (left-handed), little curve',
-    pull: 'Pull — starts left (right-handed) / right (left-handed), little curve',
+    slice_right: 'Slice',
+    hook_left: 'Hook',
+    push: 'Push',
+    pull: 'Pull',
     tops: 'Topped shots',
     fats: 'Fat / heavy shots',
     thin_shots: 'Thin shots',
@@ -225,27 +225,48 @@ export const LABELS = {
   } satisfies Record<SurfaceAccess, string>,
 };
 
+/** Ball-flight challenges whose description depends on the playing hand. */
+const DIRECTIONAL: Partial<Record<Challenge, { side: 'trail' | 'lead'; shape: string }>> = {
+  slice_right: { side: 'trail', shape: 'curves to the' },
+  hook_left: { side: 'lead', shape: 'curves to the' },
+  push: { side: 'trail', shape: 'starts' },
+  pull: { side: 'lead', shape: 'starts' },
+};
+
+/** True only when the golfer has told us their hand; anything else is never guessed. */
+function knownHand(hand: PlayingHand | null): 'right' | 'left' | null {
+  return hand === 'right' || hand === 'left' ? hand : null;
+}
+
 /**
  * Direction words for ball-flight challenges depend on hand. For a right-handed
- * golfer the lead side is the left; for a left-handed golfer, the right.
+ * golfer the trail side is the right; for a left-handed golfer, the left.
  * Returns null when hand is unknown so the UI keeps neutral wording.
  */
 export function ballFlightDirectionHint(hand: PlayingHand | null, challenge: Challenge): string | null {
-  if (hand !== 'right' && hand !== 'left') return null;
-  const lead = hand === 'right' ? 'left' : 'right';
-  const trail = hand === 'right' ? 'right' : 'left';
-  switch (challenge) {
-    case 'slice_right':
-      return `For you: curves to the ${trail}`;
-    case 'hook_left':
-      return `For you: curves to the ${lead}`;
-    case 'push':
-      return `For you: starts ${trail} of target`;
-    case 'pull':
-      return `For you: starts ${lead} of target`;
-    default:
-      return null;
-  }
+  const h = knownHand(hand);
+  const d = DIRECTIONAL[challenge];
+  if (!h || !d) return null;
+  const side = d.side === 'trail' ? h : h === 'right' ? 'left' : 'right';
+  return d.shape === 'starts' ? `starts ${side} of target, little curve` : `curves to the ${side}`;
+}
+
+/**
+ * Full challenge description for this golfer. With a known hand only that
+ * hand's direction is shown; with an unknown hand the wording stays neutral
+ * and explains both, so nothing is guessed.
+ */
+export function challengeLabel(challenge: Challenge, hand: PlayingHand | null): string {
+  const base = LABELS.challenges[challenge];
+  const d = DIRECTIONAL[challenge];
+  if (!d) return base;
+  const hint = ballFlightDirectionHint(hand, challenge);
+  if (hint) return `${base} — ${hint}`;
+  const right = d.side === 'trail' ? 'right' : 'left';
+  const left = right === 'right' ? 'left' : 'right';
+  return d.shape === 'starts'
+    ? `${base} — starts ${right} of target for a right-hander, ${left} for a left-hander`
+    : `${base} — curves ${right} for a right-hander, ${left} for a left-hander`;
 }
 
 export interface PlayerGoal {

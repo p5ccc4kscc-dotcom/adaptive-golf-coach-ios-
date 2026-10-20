@@ -32,6 +32,13 @@ Removed before release: `ageRange` (the spec allows it only with a demonstrated 
 
 Sensitive (never logged): height, wrist-to-floor, movement comfort, accessibility, comfort notes, coach details and notes.
 
+## Storage identifiers (kept through the BadGolfer rename)
+
+`src/data/db/storageIds.ts` keeps the original working name in the IndexedDB database name, the iPhone
+SQLite file name (`adaptive-golf-coach.db`) and the export `format` tag. These are internal and never
+shown to golfers. Changing them would orphan saved data, and `tests/unit/storageIds.test.ts` fails if
+they change.
+
 ## Export format
 
 `{ format: "adaptive-golf-coach-export", formatVersion: 2, exportedAt, ownerId, tables: { <table>: rows[] } }`. Plain JSON, no lock-in. Import arrives in M3.

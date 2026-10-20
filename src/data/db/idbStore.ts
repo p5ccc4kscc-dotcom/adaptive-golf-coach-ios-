@@ -1,3 +1,5 @@
+import { STORAGE_IDS } from './storageIds';
+
 /**
  * Browser-preview persistence of the whole SQLite file in IndexedDB, with a
  * revision guard.
@@ -29,7 +31,7 @@ export interface LoadedDb {
   rev: number;
 }
 
-export function openIdbStore(factory: IDBFactory, name = 'adaptive-golf-coach'): Promise<IDBDatabase> {
+export function openIdbStore(factory: IDBFactory, name: string = STORAGE_IDS.indexedDbName): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = factory.open(name, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);

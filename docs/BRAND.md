@@ -37,12 +37,19 @@ adaptive layers.
   `adaptive-golf-coach.db`, and the export format tag `adaptive-golf-coach-export`. Renaming any of
   them would orphan saved data. They are pinned in `src/data/db/storageIds.ts` and guarded by
   `tests/unit/storageIds.test.ts`.
-- **The iOS bundle identifier** is still the placeholder `com.example.adaptivegolfcoach` (see below).
+- **The iOS bundle identifier** is now `com.badgolfer.app` (see below).
 
 The Expo `slug` became `badgolfer` and the URL scheme `badgolfer`. No EAS project or installed app
 exists yet, so nothing depends on the old values.
 
-## iOS bundle identifier — proposal, awaiting owner approval
+## iOS bundle identifier — `com.badgolfer.app` (provisionally approved 2026-10-20)
+
+**Set in `app.json` on the M1a branch.** The owner approved it provisionally, subject to Apple
+confirming availability when the owner registers it (TestFlight setup, step A3). The TestFlight
+workflow refuses to build under any other identifier. If Apple rejects it, we stop and choose
+again together. The Android package is unchanged (Android is not in scope).
+
+Original proposal:
 
 The bundle identifier becomes permanent once an App ID or App Store Connect record is created with
 it. It does not need to change for the browser preview. It must be decided **before the first
@@ -55,7 +62,7 @@ device build** (M1a, after Apple Developer membership).
 | No domain | `io.github.p5ccc4kscc-dotcom.badgolfer` | Tied to the GitHub account; works, but is less tidy to show |
 
 Apple confirms uniqueness only when the identifier is registered in the developer portal.
-**Not changed in this release.**
+
 
 ## Naming-conflict investigation (preliminary — not legal clearance)
 

@@ -1,6 +1,7 @@
 # M1a — Swing analyser technical prototype
 
-_Status: built and tested on macOS and in CI. **Not yet run on a physical iPhone.**_
+_Status: built and tested on macOS and in CI. **Not yet run on a physical iPhone.** Device test:
+[`M1A_DEVICE_TEST_PLAN.md`](M1A_DEVICE_TEST_PLAN.md); how to install: `BUILD_AND_RUN.md` → TestFlight setup._
 
 ## What it does (iPhone app only)
 
@@ -60,9 +61,16 @@ _Status: built and tested on macOS and in CI. **Not yet run on a physical iPhone
    - A difference within the timing uncertainty is called “not a meaningful difference”.
 10. **History is kept:**
     - every run (completed, failed, cancelled) is a new row, so re-analysing never overwrites;
-    - removing a video archives it;
-    - a club linked to a video is archived, not deleted;
-    - **Delete all my data** removes the private copies and every analysis.
+    - a club linked to a video is archived, not deleted.
+11. **Private and deletable (owner requirement, 2026-10-20):**
+    - **Delete this video** permanently removes the private copy, the extracted frame images and
+      every analysis, phase mark and landmark record of that video.
+    - **Delete all my data** removes every copy, the frame and picker caches, and all records.
+    - The picker's temporary copy is removed right after import.
+    - Settings shows how many videos and MB are stored, so you can check deletion on the iPhone.
+      See `PRIVACY_SECURITY.md`.
+12. **Share test summary:** a text report per analysis for the device test (processing time,
+    detection rates, phase candidates against your marks).
 
 In the browser preview, Expo Go and tests the module does not exist. The Analyse tab then says why,
 and shows no import button and no results.
@@ -126,21 +134,6 @@ verified**.
 - Nothing here is coaching. Observations go to the future coaching engine marked “unvalidated,
   not mastery evidence” (`toObservations`).
 
-## How you will test it on your iPhone (once a device build exists)
+## Device test
 
-You'll need your own clips: face-on and down the line, driver and iron, in different light; slow
-motion if possible. For each:
-
-1. Analyse → **Import a swing video from Photos** → check the duration, fps and portrait/landscape
-   shown match the clip.
-2. Choose the club (or Unknown), the shot type and the camera angle → **Analyse on this iPhone**.
-   Note how long it takes. Try **Cancel** once.
-3. Scrub through: do the dots sit on your joints in **every** part of the swing? Note frames where
-   they jump or vanish.
-4. Check the four phase candidates against the frames. Mark the true ones and note how far off
-   each candidate was.
-5. Compare a face-on and a down-the-line clip, then two clips from the same angle.
-6. Try a poor clip on purpose (dark, partly out of frame, two people). It should warn you, not
-   pretend.
-
-Please tell me which steps failed, and on which clips.
+See [`M1A_DEVICE_TEST_PLAN.md`](M1A_DEVICE_TEST_PLAN.md).

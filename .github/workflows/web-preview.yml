@@ -1,12 +1,9 @@
 name: Deploy browser preview (EAS Hosting)
 
-# Publishes the web build so it can be opened in Safari on iPhone/iPad.
-# Needs a free Expo account: add an EXPO_TOKEN repository secret.
-# Until that secret exists this workflow exits successfully without deploying.
+# Optional alternative to GitHub Pages. Manual only: the EXPO_TOKEN secret added for TestFlight
+# builds must not start EAS Hosting deployments (or create an Expo project) on every merge.
 
 on:
-  push:
-    branches: ['main']
   workflow_dispatch:
 
 concurrency:

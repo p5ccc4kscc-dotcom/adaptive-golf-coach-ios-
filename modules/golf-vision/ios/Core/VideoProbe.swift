@@ -66,7 +66,7 @@ public enum VideoProbe {
       let chars = [24, 16, 8, 0].map { Character(UnicodeScalar(UInt8((subtype >> $0) & 0xFF))) }
       return String(chars).trimmingCharacters(in: .whitespaces)
     }()
-    let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value
+    let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) }
     return VideoInfo(
       durationSeconds: duration.isFinite ? duration : 0,
       naturalWidth: Int(natural.width.rounded()),

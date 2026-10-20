@@ -1,6 +1,6 @@
 # Implementation status — BadGolfer
 
-_Last updated: 2026-10-19 (M0 accepted; M0.1 in review; M1a prototype in review on its own branch)._
+_Last updated: 2026-10-20 (M0 accepted; M0.1 merged; M1a in review and being prepared for the first iPhone test)._
 
 Product name: **BadGolfer** (formerly the working name “Adaptive Golf Coach”; see [`docs/BRAND.md`](docs/BRAND.md)).
 Legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED EXTERNALLY**
@@ -40,8 +40,8 @@ sync or swing analysis (see the table above).
 |---|---|---|
 | **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **ACCEPTED** (browser preview) / native iOS **not validated** | Accepted by the owner on 2026-10-19 after testing in Safari on iPhone. No native iOS binary has been built yet. |
 | Browser preview (GitHub Pages) | **DONE (live)** | https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/ — first deployed on the PR #1 merge (run 39327682405) and used by the owner for the M0 test. |
-| **M0.1** BadGolfer branding and interface refinements | **IN REVIEW** (branch `claude/m0.1-badgolfer`) | See “M0.1” below. Not merged until the owner approves. |
-| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN REVIEW** (branch `claude/m1a-swing-analyser`, stacked on M0.1) / **device validation BLOCKED EXTERNALLY** | See “M1a” below and `docs/M1A_SWING_ANALYSER.md`. Owner: approve the Apple Developer Program cost and the bundle identifier, then provide swing clips. |
+| **M0.1** BadGolfer branding and interface refinements | **MERGED** (PR #2, 2026-10-20) | Live on GitHub Pages after the merge (Pages run 39375056716 succeeded). See “M0.1” below. |
+| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN REVIEW** (PR #3 → `main`, unmerged) / **device test waiting on owner setup** | Apple Developer Program approved; bundle ID `com.badgolfer.app` provisionally approved and set. Owner: complete `docs/BUILD_AND_RUN.md` → TestFlight setup, then run `docs/M1A_DEVICE_TEST_PLAN.md`. |
 | **M1b** Remaining analyser features | NOT STARTED | Not to start until the owner accepts M1a. |
 | **M2** Curriculum, competency and refresher engine | NOT STARTED | The `player_skill_baseline` model and repository exist (supersede-only); the Learn tab shows “Not available yet”. |
 | **M3** Rounds, practice logging, trends, import | NOT STARTED | M0 stores self-reported baseline rounds (totals or hole-by-hole putts) and range sessions. JSON export is done; import is not. |
@@ -70,7 +70,8 @@ Full description, architecture and evidence: [`docs/M1A_SWING_ANALYSER.md`](docs
 | 13 | Preserve footage and metadata | ✅ data tests | Photos original untouched; every run kept; archive, not delete |
 | 14 | Cancellation, errors, poor files | ✅ macOS | Coded errors; cancel; frame cap; “unusable” shows no results |
 | — | Native module integrates with Expo SDK 57 | ✅ CI (run 39337882406) | `expo prebuild` + `pod install` (GolfVision in `Podfile.lock`) + `xcodebuild` Debug for the iOS Simulator, unsigned: **BUILD SUCCEEDED**, with `GolfVisionModule.swift` compiled (Xcode on macOS 26 runner, 24 min) |
-| — | EAS build for a device | ⏸ **Blocked** | Needs the Apple Developer Program (cost to approve) and the bundle identifier |
+| — | EAS build for a device | ⏸ **Ready, waiting on owner setup** | `.github/workflows/ios-testflight.yml` (EAS build + TestFlight, started by the `testflight` PR label); needs the owner's Apple, Expo and GitHub setup |
+| — | Privacy: deleting a video or all data removes files and records | ✅ data tests + simulated file system / ❓ iPhone | Settings storage figures for checking on the device (D-P1, D-P2) |
 | — | Portrait, landscape and high frame rate | ✅ synthetic clips on macOS / ❓ real iPhone clips | 0/90/180/270° rotations and 240 fps tested |
 
 **Measurement integrity:**
@@ -78,7 +79,7 @@ Full description, architecture and evidence: [`docs/M1A_SWING_ANALYSER.md`](docs
 - Every value is labelled detected 2D, calculated 2D, estimated or manual.
 - No fault labels exist, and observations are marked not eligible as mastery evidence.
 
-## M0.1 — BadGolfer branding and interface refinements (in review)
+## M0.1 — BadGolfer branding and interface refinements (merged)
 
 | Requirement | Result | Evidence |
 |---|---|---|
@@ -171,7 +172,7 @@ M0.1).
 | Check | Where | Result |
 |---|---|---|
 | TypeScript, ESLint | sandbox | ✅ no errors, no warnings |
-| Jest: unit, real-SQLite data (incl. v2 → v3 upgrade), IndexedDB guard, native-renderer components | sandbox + CI | ✅ **17 suites, 142 tests** |
+| Jest: unit, real-SQLite data (incl. v2 → v3 upgrade), IndexedDB guard, native-renderer components | sandbox + CI | ✅ **18 suites, 147 tests** |
 | Browser E2E, root build (Chromium; iPhone 13 + 4 viewport sizes) | sandbox + CI | ✅ **24/24** |
 | Browser E2E, GitHub Pages sub-path build | sandbox + CI | ✅ **24/24** |
 | Upgrade: merged M0 build → this build, same origin (schema v2 → v3) | sandbox + CI | ✅ **12/12** data checks |
@@ -201,11 +202,10 @@ M0.1).
 
 ## Next steps
 
-1. **Owner:** review PR #2 (M0.1) and merge it if you approve; then review PR #3 (M1a).
-2. **Owner decisions:**
-   - approve or decline the Apple Developer Program (US$99 a year, recurring), which is needed to
-     install the iPhone app;
-   - choose the bundle identifier (`docs/BRAND.md`).
-3. **After that:** I set up the TestFlight build. You run the device test plan in
-   `docs/M1A_SWING_ANALYSER.md` with your own clips, and M1a is accepted or fixed from your
-   results. M1b does not start before you accept M1a.
+1. **Owner:** complete the TestFlight setup (`docs/BUILD_AND_RUN.md`, parts A–C), then tell me it is
+   done. No values are needed in chat.
+2. **Me:** start the first TestFlight build, fix anything the first run reveals, and confirm when
+   it is in TestFlight.
+3. **Owner:** run `docs/M1A_DEVICE_TEST_PLAN.md` and send the test summaries. I record the results
+   in `docs/M1A_DEVICE_RESULTS.md`, then fix what failed. M1a is accepted (and PR #3 merged) only
+   on your word. M1b waits for that.

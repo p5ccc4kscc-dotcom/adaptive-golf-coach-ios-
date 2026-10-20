@@ -65,7 +65,7 @@ while GitHub Pages works, and it has not been run.
 - **Not possible for free:** running Vision body pose on the iOS Simulator (Apple does not
   support it; seen in CI), and installing on your iPhone.
 
-### Payment needed: Apple Developer Program — please approve before I rely on it
+### Payment: Apple Developer Program (approved by you on 2026-10-20)
 
 | Question | Answer |
 |---|---|
@@ -79,17 +79,105 @@ while GitHub Pages works, and it has not been run.
 iOS builds. That is enough for testing, but check the current numbers on expo.dev → Pricing.
 Nothing on EAS needs paying for unless we exceed the free plan. I will ask before that happens.
 
-### Steps, once you approve (none needed yet)
+## TestFlight setup (iPhone or iPad, no Mac)
 
-1. **Choose the permanent bundle identifier** (proposal in `docs/BRAND.md`). It is fixed once the
-   App Store Connect record exists.
-2. Enrol in the Apple Developer Program, for example in the Apple Developer app on iPhone.
-3. In App Store Connect (in a browser): create an **API key** (Users and Access → Integrations),
-   with the role App Manager. EAS then creates certificates and profiles without a Mac.
-4. Create a free Expo account and an access token. Add it to this repository as the secret
-   `EXPO_TOKEN` (GitHub → Settings → Secrets and variables → Actions).
-5. I add a workflow that runs `eas build --platform ios --profile production` and
-   `eas submit --platform ios`. The build appears in **TestFlight** on your iPhone.
+You approved the Apple Developer Program on 2026-10-20, and provisionally approved the bundle
+identifier **`com.badgolfer.app`**, subject to Apple confirming it is available.
+
+**Never paste a password, the `.p8` key or a token into chat or into any file in this repository.**
+Secrets go only into GitHub's encrypted *Secrets*. The IDs below are not secret; they go into
+GitHub *Variables*, so you don't need to send them to me either.
+
+On iPhone, the Apple developer and GitHub settings pages work best with **aA → Request Desktop
+Website** in Safari. An iPad works as it is.
+
+### A. Apple (US$99 a year, renewed yearly)
+
+1. **Enrol.** Install the **Apple Developer** app from the App Store → Account → **Enrol Now** →
+   individual. Pay, then wait for the confirmation email (it can take up to 48 hours).
+2. **Team ID.** Safari → `developer.apple.com/account` → *Membership details* → **Team ID** (10
+   characters). Your team type is **Individual**.
+3. **Register the bundle identifier.** This is how Apple confirms it is available.
+   - Go to *Certificates, IDs & Profiles* → *Identifiers* → **+** → *App IDs* → *App*.
+   - Enter Description `BadGolfer` and an **Explicit** Bundle ID of `com.badgolfer.app` →
+     Continue → **Register**.
+   - Leave the capabilities as they are; EAS turns on what the app needs (Data Protection).
+   - **If Apple says it is unavailable, stop and tell me.** Don't choose another identifier.
+4. **Create the app record.** Safari → `appstoreconnect.apple.com` → *Apps* → **+** → *New App*.
+   - Platform iOS, Name **BadGolfer**, Primary language English (UK).
+   - Bundle ID `com.badgolfer.app`, SKU `badgolfer-ios`, User access Full.
+   - **If the name “BadGolfer” is taken on the App Store, stop and tell me.** We'll choose a store
+     name together; the name on your Home Screen stays BadGolfer.
+   - Then open *App Information* and note the **Apple ID** number (this is `ASC_APP_ID`).
+5. **API key (lets EAS sign and upload without a Mac).**
+   - App Store Connect → *Users and Access* → *Integrations* → *App Store Connect API* → *Team Keys*.
+     The first time, request access and accept the terms.
+   - Tap **+** → name `BadGolfer EAS` → Access **Admin** → *Generate*. Apple requires Admin so that
+     EAS can create the signing certificate and profile.
+   - Note the **Issuer ID** (at the top of the page) and the **Key ID**.
+   - Tap **Download**. Apple allows this **once**. The file `AuthKey_XXXXXXXXXX.p8` goes to
+     Files → Downloads.
+6. **Copy the key text.** Files → Downloads → long-press the `.p8` file → *Rename* → change the
+   ending to `.txt` → open it → long-press the text → *Select All* → *Copy*. You paste it in step C1.
+
+### B. Expo (free)
+
+1. Sign up at `expo.dev` (free plan).
+2. **Projects → Create project**, name `BadGolfer`, slug `badgolfer`. Copy the **Project ID**
+   shown on the project page (`EAS_PROJECT_ID`). Note your Expo **username** (`EXPO_OWNER`).
+3. **Account settings → Access tokens → Create**, named `github-actions-badgolfer`. Copy it; it
+   is shown once.
+
+### C. GitHub (this repository)
+
+1. Go to *Settings → Secrets and variables → Actions*. On the **Secrets** tab, add each with
+   *New repository secret*:
+
+   | Name | Value |
+   |---|---|
+   | `EXPO_TOKEN` | the Expo access token (B3) |
+   | `ASC_API_KEY_P8` | the whole key text you copied (A6), including the `BEGIN`/`END` lines |
+
+2. On the **Variables** tab, add each with *New repository variable*:
+
+   | Name | Value |
+   |---|---|
+   | `EAS_PROJECT_ID` | Expo Project ID (B2) |
+   | `EXPO_OWNER` | your Expo username (B2) |
+   | `APPLE_TEAM_ID` | Team ID (A2) |
+   | `ASC_KEY_ID` | Key ID (A5) |
+   | `ASC_ISSUER_ID` | Issuer ID (A5) |
+   | `ASC_APP_ID` | the app's Apple ID number (A4) |
+
+3. **Delete the `.txt` copy of the key** from Files, and from *Recently Deleted*. If you want a
+   backup, keep it only in a password manager. If the key ever leaks, revoke it in App Store
+   Connect and make a new one.
+
+### D. Build and install
+
+1. Tell me “TestFlight setup done”; no values are needed. I start the build by adding the label
+   `testflight` to PR #3, or you can add it yourself in the GitHub app (PR → Labels).
+2. The **iOS TestFlight build (EAS)** workflow then:
+   - checks every secret and variable is present and well-formed, naming any that are missing
+     but never printing them;
+   - builds the signed app on EAS;
+   - submits it to TestFlight.
+
+   The free plan's queue can take an hour or more, and Apple then processes the build for about
+   10–15 minutes.
+3. **Add yourself as a tester (once).** App Store Connect → BadGolfer → *TestFlight* → *Internal
+   Testing* → **+** → create the group `Owner` → add yourself → turn on automatic distribution.
+4. Install **TestFlight** from the App Store, open it and install **BadGolfer** on your iPhone
+   (and iPad if you like). Developer Mode is not needed for TestFlight.
+5. Run the device test plan: [`docs/M1A_DEVICE_TEST_PLAN.md`](M1A_DEVICE_TEST_PLAN.md).
+
+**Notes:**
+- Each build uses one of the 15 free iOS builds a month.
+- TestFlight builds expire after 90 days.
+- Export compliance is already answered in the app (`ITSAppUsesNonExemptEncryption = false`).
+- **Not yet verified:** that EAS creates the certificate and profile from the API key on the
+  first non-interactive run. The workflow follows Expo's documented CI variables, and the first
+  run's log will show the result.
 
 ## Costs
 
@@ -98,9 +186,9 @@ Nothing on EAS needs paying for unless we exceed the free plan. I will ask befor
 | GitHub (public repo) | now | Free. Actions on public repos are free. |
 | GitHub Pages | now (browser preview) | Free for public repositories |
 | Expo account + EAS Hosting | optional alternative | Free plan (limits on deployments and bandwidth) |
-| EAS Build | M1a device builds | Free plan: a limited number of low-priority builds per month (check current limits). Paid plans only if ever needed; I will ask first. |
+| EAS Build + Submit | M1a device builds | Free plan: 15 iOS builds/month, low-priority queue (expo.dev/pricing, checked 2026-10-20). Paid plans only if ever needed; I will ask first. |
 | GitHub Actions macOS runners | now (native compile and Vision tests) | Free for public repositories |
-| Apple Developer Program | M1a on your iPhone | US$99/year, recurring. **Awaiting your approval** |
+| Apple Developer Program | M1a on your iPhone | US$99/year, recurring. **Approved by you on 2026-10-20** |
 | iOS simulator E2E on EAS Workflows | optional | Cost/availability on the free plan **not yet confirmed** (see `docs/TESTING.md`) |
 | Cloud sync / backup | M4 | To be decided with you (iCloud vs. Supabase); nothing is committed yet |
 

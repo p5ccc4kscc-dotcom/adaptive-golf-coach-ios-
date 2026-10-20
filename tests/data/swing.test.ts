@@ -82,15 +82,30 @@ describe('swing videos and analyses (fictional metadata, synthetic frames)', () 
     expect(await relaunched.repos.poseAnalyses.frames(runs.find((r) => r.status === 'cancelled')!.id)).toBeNull();
   });
 
-  it('a club linked to a video is archived, not deleted; archiving a video keeps its analyses', async () => {
+  it('a club linked to a video is archived, not deleted', async () => {
     const app = await openTestApp();
     const clubId = (await app.repos.clubs.create(app.ownerId, clubFields('driver'))).id;
-    const videoId = await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: 'dtl', playingHand: 'left', clubInstanceId: clubId, recordedOn: null });
+    await app.repos.swingVideos.add(app.ownerId, { relativePath: 'swing-videos/x.mov', originalFileName: null, meta: META, cameraView: 'dtl', playingHand: 'left', clubInstanceId: clubId, recordedOn: null });
     expect(await app.repos.clubs.deleteOrArchive(clubId)).toBe('archived');
-    await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: videoId, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'failed', errorCode: 'ERR_VISION_FAILED', errorMessage: 'x' });
-    await app.repos.swingVideos.archive(videoId);
-    expect(await app.repos.swingVideos.list(app.ownerId)).toEqual([]);
-    expect(await app.repos.poseAnalyses.listForVideo(videoId)).toHaveLength(1);
+  });
+
+  it('deleting a video removes its record, every analysis run, phase mark and landmark set — and nothing else', async () => {
+    const app = await openTestApp();
+    const add = () => app.repos.swingVideos.add(app.ownerId, { relativePath: `swing-videos/${Math.random()}.mov`, originalFileName: null, meta: META, cameraView: 'fo', playingHand: 'right', clubInstanceId: null, recordedOn: null });
+    const doomed = await add();
+    const kept = await add();
+    for (const v of [doomed, kept]) {
+      const id = await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: v, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'completed', rawFrames: syntheticSwing({ fps: 30 }).frames, jointOrder: [] });
+      await app.repos.poseAnalyses.markPhase(app.ownerId, id, { phase: 'top', frame: 40, t: 1.33 });
+      await app.repos.poseAnalyses.add(app.ownerId, { swingVideoId: v, engine: 'e', engineVersion: '1', appVersion: null, params: {}, status: 'failed', errorCode: 'X' });
+    }
+    await app.repos.swingVideos.delete(doomed);
+    const count = async (sql: string, args: string[]) => Number((await app.db.get<{ n: number }>(sql, args))!.n);
+    expect(await app.repos.swingVideos.get(doomed)).toBeNull();
+    expect(await count('SELECT COUNT(*) AS n FROM pose_analysis WHERE swing_video_id = ?', [doomed])).toBe(0);
+    expect(await count('SELECT COUNT(*) AS n FROM pose_frame_data', [])).toBe(1);
+    expect(await count('SELECT COUNT(*) AS n FROM pose_phase_mark', [])).toBe(1);
+    expect(await app.repos.poseAnalyses.listForVideo(kept)).toHaveLength(2);
   });
 
   it('export includes swing data; Delete all my data removes it', async () => {

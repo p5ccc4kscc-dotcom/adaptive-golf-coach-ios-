@@ -22,7 +22,6 @@ export interface SwingVideo {
   clubInstanceId: string | null;
   shotType: ShotType | null;
   notes: string | null;
-  archivedAt: string | null;
 }
 
 export type AnalysisStatus = 'completed' | 'failed' | 'cancelled';
@@ -67,7 +66,6 @@ interface VideoRow {
   club_instance_id: string | null;
   shot_type: ShotType | null;
   notes: string | null;
-  archived_at: string | null;
 }
 
 const videoFromRow = (r: VideoRow): SwingVideo => ({
@@ -93,7 +91,6 @@ const videoFromRow = (r: VideoRow): SwingVideo => ({
   clubInstanceId: r.club_instance_id,
   shotType: r.shot_type,
   notes: r.notes,
-  archivedAt: r.archived_at,
 });
 
 interface AnalysisRow {
@@ -153,7 +150,7 @@ export function swingVideoRepository(ctx: RepoContext) {
       return id;
     },
     async list(ownerId: string): Promise<SwingVideo[]> {
-      const rows = await ctx.db.all<VideoRow>('SELECT * FROM swing_video WHERE owner_id = ? AND archived_at IS NULL ORDER BY imported_at DESC', [ownerId]);
+      const rows = await ctx.db.all<VideoRow>('SELECT * FROM swing_video WHERE owner_id = ? ORDER BY imported_at DESC', [ownerId]);
       return rows.map(videoFromRow);
     },
     async get(id: string): Promise<SwingVideo | null> {
@@ -174,9 +171,18 @@ export function swingVideoRepository(ctx: RepoContext) {
         await ctx.db.run('UPDATE swing_video SET club_choice = ?, club_instance_id = ? WHERE id = ?', [c?.kind ?? null, c && c.kind !== 'unknown' ? c.clubInstanceId : null, id]);
       }
     },
-    /** Hides the video; its file and analyses are kept. */
-    async archive(id: string): Promise<void> {
-      await ctx.db.run('UPDATE swing_video SET archived_at = ? WHERE id = ?', [nowIso(ctx), id]);
+    /**
+     * Permanently deletes the video's records: every analysis run, phase mark and landmark set,
+     * then the video row. The caller deletes the private video file (see the swing service).
+     */
+    async delete(id: string): Promise<void> {
+      await ctx.db.transaction(async (tx) => {
+        const runs = 'SELECT id FROM pose_analysis WHERE swing_video_id = ?';
+        await tx.run(`DELETE FROM pose_frame_data WHERE pose_analysis_id IN (${runs})`, [id]);
+        await tx.run(`DELETE FROM pose_phase_mark WHERE pose_analysis_id IN (${runs})`, [id]);
+        await tx.run('DELETE FROM pose_analysis WHERE swing_video_id = ?', [id]);
+        await tx.run('DELETE FROM swing_video WHERE id = ?', [id]);
+      });
     },
   };
 }

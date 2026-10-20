@@ -1,7 +1,7 @@
 # Release checklist (TestFlight / App Store) — not started
 
 - [ ] Trademark clearance for **BadGolfer** in each launch country (preliminary web check only, see `docs/BRAND.md`); App Store name availability; domain
-- [ ] Owner-approved permanent iOS bundle identifier (proposal in `docs/BRAND.md`)
+- [x] Owner-approved iOS bundle identifier `com.badgolfer.app` (provisional, pending Apple registration)
 - [x] Original app icon (M0.1, `assets/brand/`)
 - [ ] Real bundle identifier (currently placeholder `com.example.adaptivegolfcoach`)
 - [ ] Apple Developer Program membership; App Store Connect API key for EAS

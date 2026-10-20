@@ -4,6 +4,7 @@ import { JOINTS, JOINT_INDEX, leadSide } from '@/domain/pose/joints';
 import { NOT_MEASURABLE, computeMeasurements, toObservations } from '@/domain/pose/measures';
 import { applyPhaseMarks, detectPhases } from '@/domain/pose/phases';
 import { assessPose, assessVideo } from '@/domain/pose/quality';
+import { buildTestSummary } from '@/domain/pose/report';
 import { planSampling, swingWindow } from '@/domain/pose/sampling';
 
 import { syntheticSwing } from '../fixtures/syntheticSwing';
@@ -205,5 +206,33 @@ describe('face-on head movement towards the target', () => {
     expect(left.value).toBeCloseTo(-0.2, 2);
     expect(computeMeasurements(frames, SIZE, phases, { hand: 'right', view: 'dtl' }).find((m) => m.id === 'head_target_top')!.value).toBeNull();
     expect(computeMeasurements(frames, SIZE, phases, { hand: null, view: 'fo' }).find((m) => m.id === 'head_target_top')!.value).toBeNull();
+  });
+});
+
+describe('device test summary', () => {
+  it('records processing, tracking and candidate-vs-mark differences without names or paths', () => {
+    const frames = decodeFrames(syntheticSwing({ fps: 120 }).frames);
+    const auto = detectPhases(frames, SIZE);
+    const top = auto.candidates.top!;
+    const text = buildTestSummary({
+      appVersion: '0.1.0',
+      osVersion: '26.1',
+      engineVersion: 'vision-rev-1',
+      video: { meta: META, cameraView: 'fo', shotType: 'full', playingHand: 'right', clubChosen: true },
+      run: { createdAt: '2026-10-20T10:00:00Z', params: { plan: 1 }, framesAnalysed: frames.length, decodedFrames: frames.length, truncated: false, processingSeconds: 8 },
+      quality: assessPose(frames),
+      automatic: auto,
+      marks: [{ phase: 'top', frame: top.frame + 3, t: top.t + 3 / 120 }],
+      frameSpacing: 1 / 120,
+      otherRuns: [{ status: 'cancelled', errorCode: 'ERR_CANCELLED' }],
+    });
+    expect(text).toContain('Face-on');
+    expect(text).toMatch(/time 8\.0 s \(\d+\.\d frames\/s\)/);
+    expect(text).toMatch(/Top of backswing: 1\.400 s .* your mark: 1\.425 s · difference \+0\.025 s \(3 frames\)/);
+    expect(text).toContain('Impact');
+    expect(text).toContain('your mark: none');
+    expect(text).toContain('cancelled (ERR_CANCELLED)');
+    expect(text).toContain('does not establish accuracy');
+    expect(text).not.toMatch(/file:|swing-videos\//);
   });
 });

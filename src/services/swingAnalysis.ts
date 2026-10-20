@@ -83,6 +83,7 @@ export async function importSwingVideo(
     const name = `${context.newId()}.${ext}`;
     const dest = new File(videoDirectory(), name);
     await source.copy(dest);
+    removePickerCopy(source);
     const info = await native.probeVideo(dest.uri);
     const videoId = await repos.swingVideos.add(ownerId, {
       relativePath: `${VIDEO_DIR}/${name}`,
@@ -188,11 +189,74 @@ export async function frameImage(fileUri: string, seconds: number, maxDimension 
   return GolfVision.extractFrame(fileUri, seconds, maxDimension);
 }
 
-/** Removes the private video copies (used by Delete all my data). The originals in Photos are not touched. */
+/** Frame images the native module extracts for the viewer (derived from the golfer's videos). */
+const FRAME_CACHE_DIR = 'golfvision-frames';
+/** Where expo-image-picker leaves its temporary copy of a picked video. */
+const PICKER_CACHE_DIR = 'ImagePicker';
+
+function deleteDir(parent: Directory, name: string) {
+  const dir = new Directory(parent, name);
+  if (dir.exists) dir.delete();
+}
+
+/** The picker's temporary copy is only deleted when it is inside this app's own cache folder. */
+function removePickerCopy(source: File) {
+  try {
+    if (source.uri.startsWith(Paths.cache.uri) && source.exists) source.delete();
+  } catch {
+    // A leftover temporary file is also removed by Delete all my data and by iOS cache clean-up.
+  }
+}
+
+/**
+ * Permanently deletes one swing video: the private copy, the extracted frame images, and every
+ * analysis, phase mark and landmark record. The original in Photos is not touched.
+ */
+export async function deleteSwingVideo(repos: Repositories, video: { id: string; relativePath: string }) {
+  if (Platform.OS !== 'web') {
+    const file = new File(Paths.document, video.relativePath);
+    if (file.exists) file.delete();
+    // Frame image names are not tied to one video, so the whole regenerable cache is cleared.
+    deleteDir(Paths.cache, FRAME_CACHE_DIR);
+  }
+  await repos.swingVideos.delete(video.id);
+}
+
+/** Removes every private video copy and derived image (used by Delete all my data). Photos originals are not touched. */
 export function deleteSwingVideoFiles() {
   if (Platform.OS === 'web') return;
-  const dir = new Directory(Paths.document, VIDEO_DIR);
-  if (dir.exists) dir.delete();
+  deleteDir(Paths.document, VIDEO_DIR);
+  deleteDir(Paths.cache, FRAME_CACHE_DIR);
+  deleteDir(Paths.cache, PICKER_CACHE_DIR);
+}
+
+export interface SwingStorageUsage {
+  videoFiles: number;
+  videoBytes: number;
+  cachedFiles: number;
+  cachedBytes: number;
+}
+
+/** What swing-video data is on this device right now, so deletion can be checked in Settings. */
+export function swingStorageUsage(): SwingStorageUsage | null {
+  if (Platform.OS === 'web') return null;
+  const tally = (parent: Directory, name: string) => {
+    const dir = new Directory(parent, name);
+    let files = 0;
+    let bytes = 0;
+    if (!dir.exists) return { files, bytes };
+    for (const entry of dir.list()) {
+      if (entry instanceof File) {
+        files += 1;
+        bytes += entry.size ?? 0;
+      }
+    }
+    return { files, bytes };
+  };
+  const videos = tally(Paths.document, VIDEO_DIR);
+  const frames = tally(Paths.cache, FRAME_CACHE_DIR);
+  const picker = tally(Paths.cache, PICKER_CACHE_DIR);
+  return { videoFiles: videos.files, videoBytes: videos.bytes, cachedFiles: frames.files + picker.files, cachedBytes: frames.bytes + picker.bytes };
 }
 
 function errorCode(e: unknown): string {

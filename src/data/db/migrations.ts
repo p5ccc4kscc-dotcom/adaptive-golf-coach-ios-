@@ -284,12 +284,12 @@ CREATE TABLE swing_video (
   club_choice TEXT CHECK (club_choice IS NULL OR club_choice IN ('bag','other_owned','unknown')),
   club_instance_id TEXT REFERENCES club_instance(id),
   shot_type TEXT CHECK (shot_type IS NULL OR shot_type IN ('full','three_quarter','pitch','chip','putt','drill','other')),
-  notes TEXT,
-  archived_at TEXT
+  notes TEXT
 );
 CREATE INDEX idx_swing_video_owner ON swing_video (owner_id, imported_at);
 
--- One run of the analyser over a video. Re-analysing adds a row; earlier runs are kept.
+-- One run of the analyser over a video. Re-analysing adds a row; earlier runs are kept until the
+-- golfer deletes the video, which removes its runs, marks and landmarks with it.
 CREATE TABLE pose_analysis (
   id TEXT PRIMARY KEY NOT NULL,
   owner_id TEXT NOT NULL REFERENCES owner(id) ON DELETE CASCADE,

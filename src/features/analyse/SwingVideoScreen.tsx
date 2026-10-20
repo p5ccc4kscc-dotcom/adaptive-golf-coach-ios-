@@ -1,15 +1,18 @@
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
+import { Platform, Share } from 'react-native';
 
 import { ClubChoice } from '@/domain/baseline';
 import { decodeFrames } from '@/domain/pose/decode';
 import { NOT_MEASURABLE, NOT_MEASURABLE_REASON, computeMeasurements, formatMeasurement } from '@/domain/pose/measures';
 import { PHASES, PHASE_LABELS, applyPhaseMarks } from '@/domain/pose/phases';
+import { buildTestSummary } from '@/domain/pose/report';
 import { planSampling } from '@/domain/pose/sampling';
 import { POSE_VERDICT_LABELS, assessVideo } from '@/domain/pose/quality';
 import { BASIS_LABELS, CAMERA_VIEW_LABELS, CameraView, SHOT_TYPES, SHOT_TYPE_LABELS } from '@/domain/pose/types';
 import { useQuery, useServices } from '@/services/AppServices';
-import { cancelSwingAnalysis, runSwingAnalysis, swingAnalysisAvailability, videoUri } from '@/services/swingAnalysis';
+import { cancelSwingAnalysis, deleteSwingVideo, runSwingAnalysis, swingAnalysisAvailability, videoUri } from '@/services/swingAnalysis';
 import { AppText, Badge, Button, Card, ChoiceChips, Dialog, Disclosure, ProgressBar, Row, Screen, Stack } from '@/ui/components';
 import { goBackOr } from '@/ui/navigation';
 import { space } from '@/ui/theme';
@@ -145,6 +148,11 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
             <AppText variant="caption">
               Person found in {Math.round(latest.quality.detectionRate * 100)}% of {latest.quality.frames} frames{latest.truncated ? ' (stopped at the frame limit)' : ''} · Apple Vision {latest.engineVersion}
             </AppText>
+            <AppText variant="caption" testID="processing-time">
+              {latest.processingSeconds !== null
+                ? `Processed on this iPhone in ${latest.processingSeconds.toFixed(1)} s (${(latest.framesAnalysed / Math.max(latest.processingSeconds, 0.001)).toFixed(1)} frames per second, last pass)`
+                : 'Processing time not recorded'}
+            </AppText>
             {latest.quality.issues.map((i) => (
               <AppText key={i.code} variant="caption">⚠︎ {i.message}</AppText>
             ))}
@@ -235,13 +243,47 @@ function SwingVideoDetail({ videoId }: { videoId: string }) {
         </Disclosure>
       ) : null}
 
-      <Button variant="danger" label="Remove from BadGolfer" onPress={() => setConfirmRemove(true)} testID="remove-video" />
+      {latest ? (
+        <Button
+          variant="secondary"
+          label="Share test summary"
+          accessibilityHint="Creates a text report of this analysis for device testing. It contains no video, file paths or your name."
+          testID="share-test-summary"
+          onPress={async () => {
+            const spacing = frames && frames.length > 1 ? (frames[frames.length - 1]!.t - frames[0]!.t) / (frames.length - 1) : null;
+            const message = buildTestSummary({
+              appVersion: Constants.expoConfig?.version ?? null,
+              osVersion: String(Platform.Version),
+              engineVersion: latest.engineVersion,
+              video: { meta: video.meta, cameraView: video.cameraView, shotType: video.shotType, playingHand: video.playingHand, clubChosen: video.clubChoice === null ? null : video.clubChoice !== 'unknown' },
+              run: latest,
+              quality: latest.quality,
+              automatic: latest.phases,
+              marks: data.marks,
+              frameSpacing: spacing,
+              otherRuns: runs.filter((r) => r.id !== latest.id).map((r) => ({ status: r.status, errorCode: r.errorCode })),
+            });
+            await Share.share({ message });
+          }}
+        />
+      ) : null}
+      <Button variant="danger" label="Delete this video from BadGolfer" onPress={() => setConfirmRemove(true)} testID="delete-video" />
       <Dialog
         visible={confirmRemove}
-        title="Remove this video?"
-        message="It disappears from your list. Its analyses are kept in your history and in exports, and the original in Photos is not affected."
+        title="Delete this video?"
+        message="This permanently deletes BadGolfer’s private copy, its extracted frames and all its analyses and phase marks from this iPhone. The original in Photos is not affected. This cannot be undone."
         actions={[
-          { label: 'Remove', variant: 'danger', onPress: async () => { await repos.swingVideos.archive(video.id); setConfirmRemove(false); invalidate(); goBackOr(router, '/today'); } },
+          {
+            label: 'Delete video and analyses',
+            variant: 'danger',
+            testID: 'dialog-delete-video',
+            onPress: async () => {
+              await deleteSwingVideo(repos, video);
+              setConfirmRemove(false);
+              invalidate();
+              goBackOr(router, '/today');
+            },
+          },
           { label: 'Cancel', onPress: () => setConfirmRemove(false) },
         ]}
         onDismiss={() => setConfirmRemove(false)}

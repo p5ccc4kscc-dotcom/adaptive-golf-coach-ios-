@@ -44,7 +44,15 @@ self-aware, not a label. See [`docs/BRAND.md`](docs/BRAND.md).
   in that browser. A second, out-of-date tab can never overwrite newer data; it asks for a reload.
   JSON export and **Delete all my data** are included, and the sync status says plainly that
   nothing is backed up yet.
-- Analyse, Learn and Rounds show clearly labelled **“Not available yet”** cards. No sample or
+- **Swing analyser (M1a prototype, iPhone app only, not yet tested on a real iPhone):**
+  - import from Photos;
+  - on-device Apple Vision body tracking with exact frame times;
+  - joint overlay on the exact frames, with scrubbing;
+  - swing-phase candidates with uncertainty, which you can correct;
+  - 2D measurements labelled by basis, and two-swing comparison.
+
+  It never measures the club, the face or the ball. See [`docs/M1A_SWING_ANALYSER.md`](docs/M1A_SWING_ANALYSER.md).
+- Learn and Rounds show clearly labelled **“Not available yet”** cards, as does Analyse in the browser. No sample or
   fake analysis is shown anywhere. Settings and Today list what is available, experimental or planned.
 
 ## Viewing it on your iPhone
@@ -84,6 +92,7 @@ src/features/       Screen components (onboarding steps, clubs, profile, today)
 src/ui/             Theme, accessible components, original club artwork
 tests/              unit/, data/ (real SQLite), ui/ (native renderer), fixtures/ (fictional only)
 e2e/                Playwright browser tests
+modules/golf-vision Local Expo module (Swift): AVFoundation + Apple Vision, with macOS tests
 .eas/, .maestro/    Planned iOS-simulator E2E (not yet run)
 docs/               Architecture, build/run, testing, data dictionary, privacy, spec copies
 ```

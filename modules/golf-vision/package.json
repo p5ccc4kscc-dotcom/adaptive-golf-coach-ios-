@@ -1,0 +1,7 @@
+{
+  "name": "golf-vision",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BadGolfer local Expo module: on-device swing video metadata, exact frames and Apple Vision 2D body pose",
+  "main": "index.ts"
+}

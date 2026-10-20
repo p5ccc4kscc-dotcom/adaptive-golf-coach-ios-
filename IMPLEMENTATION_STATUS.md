@@ -1,6 +1,6 @@
 # Implementation status — BadGolfer
 
-_Last updated: 2026-10-19 (M0 accepted; M0.1 branding and interface refinements in review)._
+_Last updated: 2026-10-20 (M0 accepted; M0.1 merged; M1a in review and being prepared for the first iPhone test)._
 
 Product name: **BadGolfer** (formerly the working name “Adaptive Golf Coach”; see [`docs/BRAND.md`](docs/BRAND.md)).
 Legend: **DONE** · **PARTIAL** · **NOT STARTED** · **BLOCKED EXTERNALLY**
@@ -15,7 +15,7 @@ Authoritative spec: [`docs/spec/adaptive_golf_coach_codex_master_prompt_v2.md`](
 | **M0 browser functionality** | **User-tested and accepted** (Safari on the owner's iPhone, 2026-10-19) | Owner's manual test, see “M0 formal acceptance” below; automated browser tests in Chromium |
 | **Native iOS app** | **Not validated.** No native binary has been built or installed. | Only the iOS JavaScript bundle has been compiled (`expo export --platform ios`). Passing browser tests does **not** show that the native app works. |
 | **Cloud synchronisation / backup** | **Not implemented** (planned, M4) | Settings shows “Local only · Nothing is backed up or synced” |
-| **Video swing analysis** | **Not implemented** (M1a in progress on a separate branch) | Analyse tab shows “Not available yet” |
+| **Video swing analysis** | **M1a prototype built; NOT validated on an iPhone** | Compiles into the iOS app and passes real Apple Vision tests on macOS (CI). The browser preview cannot run it and says so. No device build exists yet (needs the Apple Developer Program). |
 
 ## M0 formal acceptance (2026-10-19)
 
@@ -40,8 +40,8 @@ sync or swing analysis (see the table above).
 |---|---|---|
 | **M0** Foundation: project, navigation, onboarding, club catalogue, Brand/Model, My Clubs, Build My Bag, persistence | **ACCEPTED** (browser preview) / native iOS **not validated** | Accepted by the owner on 2026-10-19 after testing in Safari on iPhone. No native iOS binary has been built yet. |
 | Browser preview (GitHub Pages) | **DONE (live)** | https://p5ccc4kscc-dotcom.github.io/adaptive-golf-coach-ios-/ — first deployed on the PR #1 merge (run 39327682405) and used by the owner for the M0 test. |
-| **M0.1** BadGolfer branding and interface refinements | **IN REVIEW** (branch `claude/m0.1-badgolfer`) | See “M0.1” below. Not merged until the owner approves. |
-| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN PROGRESS** (separate branch and PR) | Authorised on 2026-10-19. Installing on the iPhone needs the Apple Developer Program, and validation needs the owner's swing clips. |
+| **M0.1** BadGolfer branding and interface refinements | **MERGED** (PR #2, 2026-10-20) | Live on GitHub Pages after the merge (Pages run 39375056716 succeeded). See “M0.1” below. |
+| **M1a** Swing-analyser technical prototype (Apple Vision native module) | **IN REVIEW** (PR #3 → `main`, unmerged) / **device test waiting on owner setup** | Apple Developer Program approved; bundle ID `com.badgolfer.app` provisionally approved and set. Owner: complete `docs/BUILD_AND_RUN.md` → TestFlight setup, then run `docs/M1A_DEVICE_TEST_PLAN.md`. |
 | **M1b** Remaining analyser features | NOT STARTED | Not to start until the owner accepts M1a. |
 | **M2** Curriculum, competency and refresher engine | NOT STARTED | The `player_skill_baseline` model and repository exist (supersede-only); the Learn tab shows “Not available yet”. |
 | **M3** Rounds, practice logging, trends, import | NOT STARTED | M0 stores self-reported baseline rounds (totals or hole-by-hole putts) and range sessions. JSON export is done; import is not. |
@@ -49,7 +49,37 @@ sync or swing analysis (see the table above).
 | **M5** Live camera, club tracking | NOT STARTED | — |
 | **M6** Product readiness | NOT STARTED | `docs/RELEASE_CHECKLIST.md` |
 
-## M0.1 — BadGolfer branding and interface refinements (in review)
+## M1a — swing analyser technical prototype (in review)
+
+Full description, architecture and evidence: [`docs/M1A_SWING_ANALYSER.md`](docs/M1A_SWING_ANALYSER.md).
+
+| # | Requirement (owner brief §5) | Status | Evidence / limitation |
+|---|---|---|---|
+| 1 | Import from Photos | **Built, untested on device** | `expo-image-picker` (passthrough, current representation), private copy |
+| 2 | Real metadata (duration, orientation, frames) | ✅ macOS + Simulator | `VideoProbe` tests; frame count labelled as an estimate |
+| 3 | Frames with accurate timestamps | ✅ macOS | AVAssetReader; 240 fps clip, timestamps within 1 µs |
+| 4 | Genuine Apple Vision body pose | ✅ macOS / ⛔ Simulator (unsupported by Apple) / ❓ iPhone | Real photograph detected at all four rotations |
+| 5 | Joint coordinates + confidence | ✅ | 19 joints, x/y/confidence; missing stays missing |
+| 6 | Joints over the corresponding frames | **Built, untested on device** | Exact-time frame extraction (✅ macOS) + overlay drawn only over the frame it belongs to |
+| 7 | Scrubbing, frame by frame | **Built, untested on device** | 44 pt scrub bar, ◀/▶ frame, phase jumps |
+| 8 | Video-quality and confidence checks | ✅ unit-tested | Engineering thresholds, not validated |
+| 9 | Candidate phases with uncertainty | ✅ unit-tested on synthetic data | ± stated; golfer can mark frames; accuracy on real swings unknown |
+| 10 | Face-on and down the line | ✅ | View required before analysis; view-specific measures and wording |
+| 11 | Left- and right-handed | ✅ | Hand per video; lead side and target direction from the hand, never guessed |
+| 12 | Compare two recordings | **Built, untested on device** | Timing across views; 2D only within the same view; uncertainty-aware |
+| 13 | Preserve footage and metadata | ✅ data tests | Photos original untouched; every run kept; archive, not delete |
+| 14 | Cancellation, errors, poor files | ✅ macOS | Coded errors; cancel; frame cap; “unusable” shows no results |
+| — | Native module integrates with Expo SDK 57 | ✅ CI (run 39337882406) | `expo prebuild` + `pod install` (GolfVision in `Podfile.lock`) + `xcodebuild` Debug for the iOS Simulator, unsigned: **BUILD SUCCEEDED**, with `GolfVisionModule.swift` compiled (Xcode on macOS 26 runner, 24 min) |
+| — | EAS build for a device | ⏸ **Ready, waiting on owner setup** | `.github/workflows/ios-testflight.yml` (EAS build + TestFlight, started by the `testflight` PR label); needs the owner's Apple, Expo and GitHub setup |
+| — | Privacy: deleting a video or all data removes files and records | ✅ data tests + simulated file system / ❓ iPhone | Settings storage figures for checking on the device (D-P1, D-P2) |
+| — | Portrait, landscape and high frame rate | ✅ synthetic clips on macOS / ❓ real iPhone clips | 0/90/180/270° rotations and 240 fps tested |
+
+**Measurement integrity:**
+- Clubface, path, face-to-path, speeds, spin, launch, carry and strike are never computed.
+- Every value is labelled detected 2D, calculated 2D, estimated or manual.
+- No fault labels exist, and observations are marked not eligible as mastery evidence.
+
+## M0.1 — BadGolfer branding and interface refinements (merged)
 
 | Requirement | Result | Evidence |
 |---|---|---|
@@ -118,7 +148,7 @@ Each entry gives its status: **Fixed** (done in this update), **Approved overrid
 | Spec | Milestone |
 |---|---|
 | §2.3 club photo uploaded by the golfer (table exists) | M1 (media import) |
-| §2.1 step 7 swing videos in baseline | M1 |
+| §2.1 step 7 swing videos in baseline | M1b (videos can be imported in Analyse; not yet linked to the baseline step) |
 | §2.4 round snapshots of the bag; club picking in video/round screens | M1 / M3 (bag membership history is already stored) |
 | §2.1 step 8 drill steps and outcome logging for the starter session (the outline is real and bag-aware) | M2 |
 | §3 Today: drill, next challenge, strengths, refresher flags | M2 |
@@ -136,26 +166,29 @@ Each entry gives its status: **Fixed** (done in this update), **Approved overrid
 
 ## Test results
 
-Environment: Linux sandbox, Node 22, no Xcode or iOS simulator. These are local results for the M0.1
-branch; CI results for the same commit are on the M0.1 pull request.
+Environment: Linux sandbox (Node 22) plus GitHub Actions. Results for the M1a branch (which includes
+M0.1).
 
-| Check | Command | Result |
+| Check | Where | Result |
 |---|---|---|
-| TypeScript | `npm run typecheck` | ✅ no errors |
-| ESLint | `npm run lint` | ✅ no problems |
-| Jest (unit, real-SQLite data, IndexedDB guard, native-renderer components) | `npx jest --ci` | ✅ **14 suites, 108 tests** |
-| Browser E2E, root build (Chromium, iPhone 13 default, plus 4 viewport sizes) | `npx playwright test` | ✅ **23/23** |
-| Browser E2E, GitHub Pages sub-path build | `npm run test:e2e:pages` | ✅ **23/23** |
-| Upgrade: merged M0 build → M0.1 build, same origin | `node scripts/check-upgrade.mjs dist-m0 dist-m01` | ✅ **12/12** data checks |
-| iOS JavaScript bundle | `expo export --platform ios` | ✅ Hermes bundle builds (no native binary compiled) |
-| Workflow lint | `actionlint .github/workflows/*.yml` | ✅ |
+| TypeScript, ESLint | sandbox | ✅ no errors, no warnings |
+| Jest: unit, real-SQLite data (incl. v2 → v3 upgrade), IndexedDB guard, native-renderer components | sandbox + CI | ✅ **18 suites, 147 tests** |
+| Browser E2E, root build (Chromium; iPhone 13 + 4 viewport sizes) | sandbox + CI | ✅ **24/24** |
+| Browser E2E, GitHub Pages sub-path build | sandbox + CI | ✅ **24/24** |
+| Upgrade: merged M0 build → this build, same origin (schema v2 → v3) | sandbox + CI | ✅ **12/12** data checks |
+| iOS JavaScript bundle | sandbox | ✅ Hermes bundle builds |
+| Swift core tests, macOS (real AVFoundation + Apple Vision, real photograph) | CI macOS 26 | ✅ **9/9** |
+| Swift core tests, iOS Simulator | CI | ✅ AVFoundation tests pass; 4 Vision tests **skipped** (Vision body pose unsupported on the Simulator) |
+| iOS app build with GolfVision (`prebuild` + `pod install` + `xcodebuild`, Simulator, unsigned) | CI | ✅ BUILD SUCCEEDED |
+| Workflow lint | sandbox | ✅ actionlint |
 
 **Not run:**
-- The M0.1 build on a physical iPhone or iPad. The owner's Safari test covered M0, not M0.1.
-- Safari/WebKit (all browser tests run in Chromium).
-- iOS-simulator Maestro flows (drafted; need an Expo account, cost unconfirmed).
-- A native EAS build, including the file-protection entitlement and the native display name and icon.
-- An on-device VoiceOver and Dynamic Type audit.
+- Anything on a physical iPhone or iPad. That includes the Photos import, the analyser on real
+  swings, performance, and the native display name and icon.
+- Safari/WebKit.
+- The app launched on a Simulator.
+- An EAS build.
+- The VoiceOver and Dynamic Type audit.
 
 ## Known limitations
 
@@ -169,9 +202,10 @@ branch; CI results for the same commit are on the M0.1 pull request.
 
 ## Next steps
 
-1. **Owner:** review the M0.1 pull request. After merging, open the Pages address in Safari and check
-   the layout on your iPhone. Approve or choose the bundle identifier (`docs/BRAND.md`).
-2. **M1a** (separate pull request): the Apple Vision native module, the swing-analysis data model and
-   the analyser screens, with a native compile check in CI.
-3. **M1a on the iPhone:** needs the Apple Developer Program, then an EAS development build. The owner
-   installs it and runs it on their own face-on and down-the-line clips.
+1. **Owner:** complete the TestFlight setup (`docs/BUILD_AND_RUN.md`, parts A–C), then tell me it is
+   done. No values are needed in chat.
+2. **Me:** start the first TestFlight build, fix anything the first run reveals, and confirm when
+   it is in TestFlight.
+3. **Owner:** run `docs/M1A_DEVICE_TEST_PLAN.md` and send the test summaries. I record the results
+   in `docs/M1A_DEVICE_RESULTS.md`, then fix what failed. M1a is accepted (and PR #3 merged) only
+   on your word. M1b waits for that.

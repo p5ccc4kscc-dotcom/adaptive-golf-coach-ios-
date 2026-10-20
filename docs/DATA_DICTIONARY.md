@@ -1,4 +1,4 @@
-# Data dictionary (schema v2)
+# Data dictionary (schema v3)
 
 All timestamps are UTC ISO-8601 text. Calendar dates the golfer sees (`played_on`,
 `observed_on`) are local `YYYY-MM-DD` in the golfer's own time zone. IDs are UUID text.
@@ -22,6 +22,10 @@ All timestamps are UTC ISO-8601 text. Calendar dates the golfer sees (`played_on
 | `baseline_round_hole` *(v2)* | Optional hole-by-hole putts for a baseline round | `hole_number` 1–18, `putts` nullable (**null = not counted on that hole**) |
 | `baseline_range_outcome` *(v2)* | Recent range sessions entered as baseline | `club_choice` bag/other_owned/unknown, `club_instance_id` (ClubInstanceID or null), `context`, `shots`, `successes` nullable, `success_definition`, `source` |
 | `golf_coach_note` *(v2)* | GolfCoachNote: dated notes from a coach | `coach_name`, `noted_on`, `text`, `club_instance_id`, `source` (`self_reported` when typed by the golfer), `archived_at` |
+| `swing_video` *(v3)* | An imported swing video (private copy; Photos original untouched) | `relative_path` (relative to the app's documents folder; iOS moves the container on updates), `original_file_name`, metadata read from the file (`duration_s`, `display_width/height`, `rotation_deg`, `nominal_fps`, `estimated_frame_count`, `codec`, `file_size_bytes`), golfer context (`camera_view` fo/dtl/other, `playing_hand`, `club_choice` bag/other_owned/unknown + `club_instance_id`, `shot_type`; **NULL = not chosen**), `archived_at` |
+| `pose_analysis` *(v3)* | One analyser run (completed, failed or cancelled; runs are never overwritten) | `engine` (`apple_vision_body_pose_2d`), `engine_version` (Vision revision), `app_version`, `params_json` (sampling plan, window, thresholds), `status`, `error_code/message`, `frames_analysed`, `decoded_frames`, `truncated`, `processing_s`, `quality_json`, `phases_json` (automatic candidates) |
+| `pose_phase_mark` *(v3)* | Phases the golfer marked by hand; append-only (`superseded_at`) | `pose_analysis_id`, `phase`, `frame_index`, `time_s` |
+| `pose_frame_data` *(v3)* | Detected landmarks of a completed run, as Vision returned them (4 dp) | `format_version`, `joint_order_json`, `frames_json` (`t` time s, `i` decoded frame index, `n` people, `p` 19 × x, y, confidence; missing = −1, −1, 0) |
 | `player_skill_baseline` *(v2)* | PlayerSkillBaseline: approved per-skill baseline (populated by M2) | `skill_id`, `level`, `context`, `club_instance_id`, `camera_view`, `measurement_version`, `provenance`, `summary_json`, `approved_by`, `approval_rationale`, `superseded_at` |
 
 ## Profile field keys
@@ -40,6 +44,9 @@ shown to golfers. Changing them would orphan saved data, and `tests/unit/storage
 they change.
 
 ## Export format
+
+formatVersion **3** adds `swing_video`, `pose_analysis`, `pose_phase_mark` and `pose_frame_data`. Video files themselves are not included in the JSON.
+
 
 `{ format: "adaptive-golf-coach-export", formatVersion: 2, exportedAt, ownerId, tables: { <table>: rows[] } }`. Plain JSON, no lock-in. Import arrives in M3.
 

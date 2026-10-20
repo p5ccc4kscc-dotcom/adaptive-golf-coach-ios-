@@ -4,6 +4,7 @@
 // Both builds must be Pages-style exports for BASE_PATH (default /adaptive-golf-coach-ios-).
 // Uses only fictional data.
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { chromium } from '@playwright/test';
 
@@ -63,7 +64,6 @@ await page.getByTestId('create-preset').click();
 await page.getByTestId('bag-count').filter({ hasText: '0 / 14' }).waitFor();
 await page.getByRole('radio', { name: /^My Bag/ }).click();
 await page.getByTestId('bag-count').filter({ hasText: '2 / 14' }).waitFor();
-const oldTitle = await page.title();
 await page.close();
 server.kill();
 await sleep(300);
@@ -73,7 +73,12 @@ server = await serve(newDist);
 page = await ctx.newPage();
 await page.goto(url('today'));
 await page.getByTestId('today').waitFor();
-check((await page.title()) !== oldTitle, `new build is being served (title "${oldTitle}" → "${await page.title()}")`);
+// The page must be running the NEW build's JavaScript bundle (compared by its content-hashed
+// file name; old and new can share a title, e.g. after a merge to main).
+const bundleOf = (html) => html.match(/_expo\/static\/js\/web\/entry-[0-9a-f]+\.js/)?.[0] ?? null;
+const expected = bundleOf(readFileSync(`${newDist}/index.html`, 'utf8'));
+const served = bundleOf(await page.content());
+check(expected !== null && served === expected, `new build is being served (bundle ${served ?? 'none'})`);
 check(await page.getByText('Hello, Test Golfer Upgrade').isVisible(), 'profile name kept');
 check(await page.getByText('Fictional goal for upgrade test').isVisible(), 'goal kept');
 await page.goto(url('clubs'));

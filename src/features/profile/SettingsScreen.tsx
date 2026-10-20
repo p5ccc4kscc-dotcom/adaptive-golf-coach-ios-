@@ -10,6 +10,7 @@ import { localOnlySyncProvider, SYNC_STATUS_LABELS } from '@/domain/sync';
 import { AppText, Badge, Button, Card, ChoiceChips, Dialog, DialogAction, Loading, NotAvailable, Row, Screen, SectionHeader, Stack } from '@/ui/components';
 import { FeatureStatusList } from '@/ui/FeatureStatusList';
 import { space } from '@/ui/theme';
+import { deleteSwingVideoFiles, swingStorageUsage } from '@/services/swingAnalysis';
 
 export function SettingsScreen() {
   const { repos, ownerId, invalidate, storageLabel, persistent } = useServices();
@@ -19,6 +20,8 @@ export function SettingsScreen() {
   const [dialog, setDialog] = useState<{ title: string; message: string; actions: DialogAction[] } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   if (!units) return <Loading />;
+  // Re-read on every render (e.g. after Delete all my data) so the figures reflect the files on disk.
+  const storage = swingStorageUsage();
 
   const saveUnits = async (patch: Partial<{ distanceUnit: DistanceUnit; clubLengthUnit: LengthUnit; heightUnit: HeightUnit }>) => {
     await repos.preferences.setUnits(ownerId, { distanceUnit: units.distanceUnit, clubLengthUnit: units.clubLengthUnit, heightUnit: units.heightUnit, ...patch });
@@ -78,6 +81,20 @@ export function SettingsScreen() {
           </AppText>
         </Card>
       ) : null}
+      {storage ? (
+        <Card testID="swing-storage">
+          <Stack gap={space.xs}>
+            <AppText variant="label">Swing videos stored on this iPhone</AppText>
+            <AppText variant="caption">
+              {storage.videoFiles} {storage.videoFiles === 1 ? 'video' : 'videos'} · {(storage.videoBytes / 1_000_000).toFixed(1)} MB, plus {storage.cachedFiles} cached
+              frame or import {storage.cachedFiles === 1 ? 'file' : 'files'} · {(storage.cachedBytes / 1_000_000).toFixed(1)} MB
+            </AppText>
+            <AppText variant="caption" muted>
+              Private to BadGolfer on this device and never uploaded. They are included in your own iPhone backup, like other app data.
+            </AppText>
+          </Stack>
+        </Card>
+      ) : null}
       <Button label="Export all my data (JSON)" variant="secondary" onPress={exportData} testID="export-data" />
       <NotAvailable title="Import from a backup file" detail="Restoring an export arrives with rounds and practice logging in M3." milestone="M3" />
       {message ? <AppText variant="caption">{message}</AppText> : null}
@@ -88,7 +105,7 @@ export function SettingsScreen() {
         onPress={() =>
           setDialog({
             title: 'Delete all your data?',
-            message: 'This permanently removes your profile, goals, clubs, bags, distances, past rounds, range sessions and coach notes from this device. It cannot be undone. Export first if you want a copy.',
+            message: 'This permanently removes your profile, goals, clubs, bags, distances, past rounds, range sessions, coach notes, imported swing videos and their analyses from this device (originals in Photos are not touched). It cannot be undone. Export first if you want a copy.',
             actions: [
               {
                 label: 'Delete everything',
@@ -96,6 +113,7 @@ export function SettingsScreen() {
                 testID: 'dialog-delete-all',
                 onPress: async () => {
                   await repos.deleteAllData(ownerId);
+                  deleteSwingVideoFiles();
                   setDialog(null);
                   invalidate();
                   router.replace('/');

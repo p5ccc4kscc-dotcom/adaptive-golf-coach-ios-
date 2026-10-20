@@ -1,3 +1,3 @@
-import { AnalyseScreen } from '@/features/placeholders/AnalyseScreen';
+import { AnalyseHome } from '@/features/analyse/AnalyseHome';
 
-export default AnalyseScreen;
+export default AnalyseHome;
